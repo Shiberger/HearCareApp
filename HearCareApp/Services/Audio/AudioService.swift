@@ -19,7 +19,7 @@ class AudioService: ObservableObject {
     let maxVolume: Float = 0.9
     @Published var userResponses: [TestResponse] = []
     
-    private let testFrequencies: [Float] = [250, 500, 1000, 2000, 4000, 8000]
+    private let testFrequencies: [Float] = [500, 1000, 2000, 4000, 8000]
     private let volumeLevels: [Float] = [0.9, 0.7, 0.5, 0.3, 0.2, 0.1, 0.05, 0.025, 0.0125, 0.00625]
     
     struct TestResponse {
@@ -111,7 +111,7 @@ class AudioService: ObservableObject {
         isPlaying = false
     }
     
-    // Make sure your recordResponse method can handle "not heard" responses:
+    // Original method - keep for backward compatibility
     func recordResponse(heard: Bool, ear: Ear) {
         if heard {
             let response = TestResponse(
@@ -131,6 +131,17 @@ class AudioService: ObservableObject {
             )
             userResponses.append(response)
         }
+    }
+    
+    // New method with specific frequency and volumeHeard parameters for HearingTestManager
+    func recordResponse(heard: Bool, frequency: Float, volumeHeard: Float, ear: Ear) {
+        let response = TestResponse(
+            frequency: frequency,
+            volumeHeard: volumeHeard,
+            ear: ear,
+            timestamp: Date()
+        )
+        userResponses.append(response)
     }
     
     func runAutomatedTest(for ear: Ear, completion: @escaping () -> Void) {

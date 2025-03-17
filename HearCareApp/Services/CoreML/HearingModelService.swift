@@ -5,7 +5,6 @@
 //  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
 //
 
-// Services/CoreML/HearingModelService.swift
 import Foundation
 import CoreML
 
@@ -103,28 +102,35 @@ class HearingModelService {
             return nil
         }
         
+        // Define the frequencies that were used to train the model (from your notebook)
+        let modelFrequencies = [500, 1000, 2000, 4000, 8000]
+        
         // Create a dictionary of input values with proper types
         var inputDict: [String: Double] = [:]
         
-        // Add right ear data
-        for (frequency, level) in rightEarLevels {
-            let key = "\(Int(frequency))Hz_right"
-            inputDict[key] = Double(level)
+        // Add right ear data for only the frequencies the model was trained on
+        for frequency in modelFrequencies {
+            let floatFreq = Float(frequency)
+            let key = "\(frequency)Hz_right"
+            
+            if let level = rightEarLevels[floatFreq] {
+                inputDict[key] = Double(level)
+            } else {
+                // Use 0.0 as default for missing frequencies
+                inputDict[key] = 0.0
+            }
         }
         
-        // Add left ear data
-        for (frequency, level) in leftEarLevels {
-            let key = "\(Int(frequency))Hz_left"
-            inputDict[key] = Double(level)
-        }
-        
-        // Fill in any missing values with defaults
-        for ear in ["right", "left"] {
-            for freq in [250, 500, 1000, 2000, 4000, 8000] {
-                let key = "\(freq)Hz_\(ear)"
-                if inputDict[key] == nil {
-                    inputDict[key] = 0.0  // Default to 0 dB (perfect hearing) if no data
-                }
+        // Add left ear data for only the frequencies the model was trained on
+        for frequency in modelFrequencies {
+            let floatFreq = Float(frequency)
+            let key = "\(frequency)Hz_left"
+            
+            if let level = leftEarLevels[floatFreq] {
+                inputDict[key] = Double(level)
+            } else {
+                // Use 0.0 as default for missing frequencies
+                inputDict[key] = 0.0
             }
         }
         
@@ -138,14 +144,17 @@ class HearingModelService {
             // Make prediction using the generic model interface
             let prediction = try genericModel.prediction(from: provider)
             
-            // Extract the output from the prediction - fix for the conditional binding error
+            // Extract the output from the prediction
             let outputFeatureValue = prediction.featureValue(for: "hearingClassification")
             
             // Make sure we have a string value
             if let outputString = outputFeatureValue?.stringValue,
                let classification = HearingClassification(rawValue: outputString) {
-                // For now, return the same classification for both ears
-                return (right: classification, left: classification)
+                // Analyze each ear separately
+                let rightClassification = determineEarClassification(levels: rightEarLevels)
+                let leftClassification = determineEarClassification(levels: leftEarLevels)
+                
+                return (right: rightClassification, left: leftClassification)
             } else {
                 // Handle the case where we don't get a proper classification
                 print("Invalid or missing classification value")
@@ -162,6 +171,17 @@ class HearingModelService {
             let rightClassification = classifyHearingManually(levels: rightEarLevels)
             let leftClassification = classifyHearingManually(levels: leftEarLevels)
             return (right: rightClassification, left: leftClassification)
+        }
+    }
+    
+    // Helper function to determine classification for a single ear
+    private func determineEarClassification(levels: [Float: Float]) -> HearingClassification {
+        // If we have enough data points, use the machine learning model result
+        if levels.count >= 3 {
+            return classifyHearingManually(levels: levels)
+        } else {
+            // Not enough data points for this ear, fallback to manual classification
+            return classifyHearingManually(levels: levels)
         }
     }
     

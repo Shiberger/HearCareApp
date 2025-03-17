@@ -24,9 +24,12 @@ class ResultsProcessor {
         let rightEarResponses = responses.filter { $0.ear == .right }
         let leftEarResponses = responses.filter { $0.ear == .left }
         
+        // These are the frequencies used in our model training
+        let testFrequencies = [500.0, 1000.0, 2000.0, 4000.0, 8000.0]
+        
         // Process right ear
         var rightEarHearingLevel: [Float: Float] = [:]
-        for frequency in [250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0] {
+        for frequency in testFrequencies {
             let responsesForFrequency = rightEarResponses.filter { $0.frequency == Float(frequency) }
             if let lowestVolumeHeard = responsesForFrequency.map({ $0.volumeHeard }).min() {
                 // Convert volume to hearing level in dB
@@ -37,7 +40,7 @@ class ResultsProcessor {
         
         // Process left ear
         var leftEarHearingLevel: [Float: Float] = [:]
-        for frequency in [250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0] {
+        for frequency in testFrequencies {
             let responsesForFrequency = leftEarResponses.filter { $0.frequency == Float(frequency) }
             if let lowestVolumeHeard = responsesForFrequency.map({ $0.volumeHeard }).min() {
                 // Convert volume to hearing level in dB
@@ -78,29 +81,35 @@ class ResultsProcessor {
     }
     
     private func volumeTodB(_ volume: Float) -> Float {
-        // Calibration for a proper audiogram
-        // For typical audiometric testing:
-        // - Lower volumes that were heard = better hearing = lower dB values (0-25 dB)
-        // - Higher volumes needed to hear = poorer hearing = higher dB values (40+ dB)
-        
-        // Special case for "not heard" (infinity)
         if volume == Float.infinity {
-            return 90.0  // Not heard even at maximum - severe to profound loss
+            return 120.0  // Max testable threshold
         }
-        
-        // Map our testing volume range to proper audiometric dB values
-        // volumeLevels: [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.9]
-        // should map approximately to: [0, 10, 20, 30, 40, 50, 60, 70]
-        
-        // Simple linear mapping - adjust these values based on your calibration
-        let minVolume: Float = 0.05
-        let maxVolume: Float = 0.9
-        
-        // Normalize the volume
-        let normalizedVolume = (volume - minVolume) / (maxVolume - minVolume)
-        
-        // Map to dB range (0-80 dB) with lower volumes = better hearing
-        return normalizedVolume * 80.0
+        let volumeLevels: [Float: Float] = [
+            0.05: 0,   // Normal hearing threshold
+            0.1: 10,
+            0.2: 20,
+            0.3: 30,
+            0.4: 40,
+            0.5: 50,
+            0.7: 60,
+            0.9: 70,
+            1.0: 80    // Add higher volumes if your test supports them
+        ]
+        if let dB = volumeLevels[volume] {
+            return dB
+        }
+        // Linear interpolation for intermediate values
+        let sortedKeys = volumeLevels.keys.sorted()
+        for i in 0..<(sortedKeys.count - 1) {
+            let v1 = sortedKeys[i]
+            let v2 = sortedKeys[i + 1]
+            if volume >= v1 && volume <= v2 {
+                let dB1 = volumeLevels[v1]!
+                let dB2 = volumeLevels[v2]!
+                return dB1 + (dB2 - dB1) * (volume - v1) / (v2 - v1)
+            }
+        }
+        return min(max(volume * 80.0, 0), 120)  // Fallback, capped at 120 dB
     }
     
     private func generateRecommendations(

@@ -5,7 +5,6 @@
 //  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
 //
 
-// App/HearCareApp.swift
 import SwiftUI
 import Firebase
 import GoogleSignIn

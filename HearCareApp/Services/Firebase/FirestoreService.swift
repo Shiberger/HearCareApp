@@ -28,6 +28,30 @@ class FirestoreService {
             if let error = error {
                 completion(.failure(error))
             } else {
+                // Also save this as the last test
+                self.saveLastTest(userId: userId, testResult: testResult) { lastTestResult in
+                    // Just log the last test save result, but return the original result
+                    if case .failure(let error) = lastTestResult {
+                        print("Failed to save as last test: \(error.localizedDescription)")
+                    }
+                }
+                completion(.success(()))
+            }
+        }
+    }
+    
+    // Save as last test
+    private func saveLastTest(userId: String, testResult: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
+        let lastTestRef = db.collection("users").document(userId).collection("userData").document("lastTest")
+        
+        // Add timestamp for when it was saved as last test
+        var updatedTestResult = testResult
+        updatedTestResult["savedAsLastTestAt"] = FieldValue.serverTimestamp()
+        
+        lastTestRef.setData(updatedTestResult) { error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
                 completion(.success(()))
             }
         }
@@ -46,6 +70,131 @@ class FirestoreService {
         
         // Call the standard save method
         saveTestResult(updatedTestResult, completion: completion)
+    }
+    
+    // Get the last test result for current user
+    func getLastTestForCurrentUser(completion: @escaping (Result<TestResult?, Error>) -> Void) {
+        guard let user = Auth.auth().currentUser else {
+            completion(.failure(NSError(domain: "FirestoreService", code: -1, userInfo: [NSLocalizedDescriptionKey: "No authenticated user"])))
+            return
+        }
+        
+        // First try to get from the lastTest document
+        let lastTestRef = db.collection("users").document(user.uid).collection("userData").document("lastTest")
+        
+        lastTestRef.getDocument { snapshot, error in
+            if let error = error {
+                // If there's an error getting the last test, try the alternative method
+                self.getLastTestFromHistory(userId: user.uid, completion: completion)
+                return
+            }
+            
+            guard let data = snapshot?.data(), !data.isEmpty else {
+                // If there's no last test document, try the alternative method
+                self.getLastTestFromHistory(userId: user.uid, completion: completion)
+                return
+            }
+            
+            // Parse the last test document
+            do {
+                let testDate = (data["testDate"] as? Timestamp)?.dateValue() ?? Date()
+                let rightEarClassification = data["rightEarClassification"] as? String ?? "Unknown"
+                let leftEarClassification = data["leftEarClassification"] as? String ?? "Unknown"
+                
+                // Parse frequency data
+                let rightEarData = data["rightEarData"] as? [[String: Any]] ?? []
+                let leftEarData = data["leftEarData"] as? [[String: Any]] ?? []
+                
+                var rightEarFrequencies: [TestFrequencyDataPoint] = []
+                var leftEarFrequencies: [TestFrequencyDataPoint] = []
+                
+                for point in rightEarData {
+                    if let frequency = point["frequency"] as? Float,
+                       let hearingLevel = point["hearingLevel"] as? Float {
+                        rightEarFrequencies.append(TestFrequencyDataPoint(frequency: frequency, hearingLevel: hearingLevel))
+                    }
+                }
+                
+                for point in leftEarData {
+                    if let frequency = point["frequency"] as? Float,
+                       let hearingLevel = point["hearingLevel"] as? Float {
+                        leftEarFrequencies.append(TestFrequencyDataPoint(frequency: frequency, hearingLevel: hearingLevel))
+                    }
+                }
+                
+                let testResult = TestResult(
+                    id: "lastTest",
+                    testDate: testDate,
+                    rightEarClassification: rightEarClassification,
+                    leftEarClassification: leftEarClassification,
+                    rightEarData: rightEarFrequencies,
+                    leftEarData: leftEarFrequencies
+                )
+                
+                completion(.success(testResult))
+            } catch {
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    // Fallback method to get the most recent test from history
+    private func getLastTestFromHistory(userId: String, completion: @escaping (Result<TestResult?, Error>) -> Void) {
+        let userTestsRef = db.collection("users").document(userId).collection("testResults")
+        
+        userTestsRef.order(by: "testDate", descending: true).limit(to: 1).getDocuments { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let documents = snapshot?.documents, !documents.isEmpty else {
+                // No test results found
+                completion(.success(nil))
+                return
+            }
+            
+            // Parse the most recent test result
+            let document = documents[0]
+            let data = document.data()
+            
+            // Create test result model from document data
+            let testDate = (data["testDate"] as? Timestamp)?.dateValue() ?? Date()
+            let rightEarClassification = data["rightEarClassification"] as? String ?? "Unknown"
+            let leftEarClassification = data["leftEarClassification"] as? String ?? "Unknown"
+            
+            // Parse frequency data
+            let rightEarData = data["rightEarData"] as? [[String: Any]] ?? []
+            let leftEarData = data["leftEarData"] as? [[String: Any]] ?? []
+            
+            var rightEarFrequencies: [TestFrequencyDataPoint] = []
+            var leftEarFrequencies: [TestFrequencyDataPoint] = []
+            
+            for point in rightEarData {
+                if let frequency = point["frequency"] as? Float,
+                   let hearingLevel = point["hearingLevel"] as? Float {
+                    rightEarFrequencies.append(TestFrequencyDataPoint(frequency: frequency, hearingLevel: hearingLevel))
+                }
+            }
+            
+            for point in leftEarData {
+                if let frequency = point["frequency"] as? Float,
+                   let hearingLevel = point["hearingLevel"] as? Float {
+                    leftEarFrequencies.append(TestFrequencyDataPoint(frequency: frequency, hearingLevel: hearingLevel))
+                }
+            }
+            
+            let testResult = TestResult(
+                id: document.documentID,
+                testDate: testDate,
+                rightEarClassification: rightEarClassification,
+                leftEarClassification: leftEarClassification,
+                rightEarData: rightEarFrequencies,
+                leftEarData: leftEarFrequencies
+            )
+            
+            completion(.success(testResult))
+        }
     }
     
     // Get user's test history

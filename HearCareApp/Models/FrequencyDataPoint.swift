@@ -5,18 +5,21 @@
 //  Created by Hannarong Kaewkiriya on 5/3/2568 BE.
 //
 
-// Models/FrequencyDataPoint.swift
 import Foundation
 
 struct FrequencyDataPoint: Identifiable {
-    let id = UUID()
+    let id: Float  // Use frequency as the unique identifier
     let frequency: Float
     let hearingLevel: Float
     
+    // Initialize id with frequency since they’re the same in this context
+    init(frequency: Float, hearingLevel: Float) {
+        self.id = frequency
+        self.frequency = frequency
+        self.hearingLevel = hearingLevel
+    }
+    
     var frequencyLabel: String {
-        if frequency >= 1000 {
-            return "\(Int(frequency/1000))k"
-        }
-        return "\(Int(frequency))"
+        frequency >= 1000 ? "\(Int(frequency/1000))k" : "\(Int(frequency))"
     }
 }

@@ -5,13 +5,6 @@
 //  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
 //
 
-//
-//  AudiogramChartView.swift
-//  HearCareApp
-//
-//  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
-//
-
 import SwiftUI
 import Charts
 
@@ -27,8 +20,8 @@ struct AudiogramChartView: View {
     private let severeLossRange = 70..<90
     private let profoundLossRange = 90..<120
     
-    // Define ordered frequencies for X-axis
-    private let orderedFrequencies = ["250", "500", "1k", "2k", "4k", "8k"]
+    // Define ordered frequencies for X-axis (in clinical order)
+    private let orderedFrequencies = ["500", "1k", "2k", "4k", "8k"]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -102,7 +95,7 @@ struct AudiogramChartView: View {
             .foregroundStyle(Color.purple.opacity(0.1))
             
             // Right ear data with circles - sort and normalize frequency labels
-            ForEach(sortedRightEarData) { point in
+            ForEach(filteredRightEarData) { point in
                 LineMark(
                     x: .value("Frequency", standardizeFrequencyLabel(point.frequencyLabel)),
                     y: .value("Hearing Level", point.hearingLevel)
@@ -111,7 +104,7 @@ struct AudiogramChartView: View {
                 .interpolationMethod(.linear)
             }
             
-            ForEach(sortedRightEarData) { point in
+            ForEach(filteredRightEarData) { point in
                 PointMark(
                     x: .value("Frequency", standardizeFrequencyLabel(point.frequencyLabel)),
                     y: .value("Hearing Level", point.hearingLevel)
@@ -122,7 +115,7 @@ struct AudiogramChartView: View {
             }
             
             // Left ear data with X's - sort and normalize frequency labels
-            ForEach(sortedLeftEarData) { point in
+            ForEach(filteredLeftEarData) { point in
                 LineMark(
                     x: .value("Frequency", standardizeFrequencyLabel(point.frequencyLabel)),
                     y: .value("Hearing Level", point.hearingLevel)
@@ -131,7 +124,7 @@ struct AudiogramChartView: View {
                 .interpolationMethod(.linear)
             }
             
-            ForEach(sortedLeftEarData) { point in
+            ForEach(filteredLeftEarData) { point in
                 PointMark(
                     x: .value("Frequency", standardizeFrequencyLabel(point.frequencyLabel)),
                     y: .value("Hearing Level", point.hearingLevel)
@@ -160,23 +153,31 @@ struct AudiogramChartView: View {
                 AxisValueLabel()
             }
         }
-        // Force the chart to use our category domain
+        .chartXScale(domain: orderedFrequencies)
         .chartYAxisLabel("Hearing Level (dB)")
         .chartXAxisLabel("Frequency (Hz)")
     }
     
-    // Helper computed properties to sort the ear data by frequency
-    private var sortedRightEarData: [FrequencyDataPoint] {
-        return rightEarData.sorted { frequencyOrder($0.frequencyLabel) < frequencyOrder($1.frequencyLabel) }
+    // Filter out data points for frequencies not in our ordered list
+    private var filteredRightEarData: [FrequencyDataPoint] {
+        return rightEarData
+            .filter { isFrequencyInOrderedList(standardizeFrequencyLabel($0.frequencyLabel)) }
+            .sorted { frequencyOrder($0.frequencyLabel) < frequencyOrder($1.frequencyLabel) }
     }
     
-    private var sortedLeftEarData: [FrequencyDataPoint] {
-        return leftEarData.sorted { frequencyOrder($0.frequencyLabel) < frequencyOrder($1.frequencyLabel) }
+    private var filteredLeftEarData: [FrequencyDataPoint] {
+        return leftEarData
+            .filter { isFrequencyInOrderedList(standardizeFrequencyLabel($0.frequencyLabel)) }
+            .sorted { frequencyOrder($0.frequencyLabel) < frequencyOrder($1.frequencyLabel) }
+    }
+    
+    // Helper function to check if a frequency is in our ordered list
+    private func isFrequencyInOrderedList(_ frequency: String) -> Bool {
+        return orderedFrequencies.contains(frequency)
     }
     
     // Helper function to convert any frequency label format to our standard format
     private func standardizeFrequencyLabel(_ label: String) -> String {
-        if label.contains("250") { return "250" }
         if label.contains("500") { return "500" }
         if label.contains("1000") || label.contains("1k") { return "1k" }
         if label.contains("2000") || label.contains("2k") { return "2k" }

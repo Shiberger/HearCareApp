@@ -5,7 +5,6 @@
 //  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
 //
 
-// ResultsViewModel.swift
 import SwiftUI
 import Combine
 import FirebaseAuth
@@ -71,7 +70,6 @@ class ResultsViewModel: ObservableObject {
         // Process with Core ML
         let results = resultsProcessor.processResults(from: responses)
         
-        // Update right ear data
         rightEarDataPoints = results.rightEarHearingLevel.map { frequency, level in
             FrequencyDataPoint(frequency: frequency, hearingLevel: level)
         }
@@ -96,7 +94,7 @@ class ResultsViewModel: ObservableObject {
     
     // Helper method to update frequency breakdown
     private func updateFrequencyBreakdown() {
-        let frequencies: [Float] = [250, 500, 1000, 2000, 4000, 8000]
+        let frequencies: [Float] = [500, 1000, 2000, 4000, 8000]
         frequencyBreakdown = frequencies.map { frequency in
             // Find the data points for this frequency
             let rightPoint = rightEarDataPoints.first { dataPoint in
@@ -106,8 +104,8 @@ class ResultsViewModel: ObservableObject {
                 dataPoint.frequency == frequency
             }
             
-            let rightLevel = rightPoint?.hearingLevel ?? 0
-            let leftLevel = leftPoint?.hearingLevel ?? 0
+            let rightLevel = rightPoint?.hearingLevel ?? Float.infinity  // Indicate no data
+            let leftLevel = leftPoint?.hearingLevel ?? Float.infinity
             
             let frequencyLabel = frequency >= 1000 ?
                 "\(Int(frequency/1000))k Hz" :
