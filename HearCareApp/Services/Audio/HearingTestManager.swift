@@ -91,7 +91,7 @@ class HearingTestManager: ObservableObject {
         responseCount = 0
         positiveResponseCount = 0
         
-        updateDebugInfo()
+        // updateDebugInfo()
         // Begin first tone
         playTone()
     }
@@ -114,7 +114,7 @@ class HearingTestManager: ObservableObject {
             )
             
             self.isPlaying = true
-            self.updateDebugInfo()
+            // self.updateDebugInfo()
             
             // Set a timeout for response - using a DispatchWorkItem that can be cancelled
             self.setResponseTimeout()
@@ -177,7 +177,7 @@ class HearingTestManager: ObservableObject {
             handleConfirmationResponse(heard: heard)
         }
         
-        updateDebugInfo()
+        // updateDebugInfo()
     }
     
     private func handleFamiliarizationResponse(heard: Bool) {
@@ -385,9 +385,9 @@ class HearingTestManager: ObservableObject {
     }
     
     // For debugging purposes
-    private func updateDebugInfo() {
-        debugInfo = "Phase: \(testPhase.rawValue), Freq: \(Int(currentFrequency))Hz, Level: \(Int(currentDBLevel))dB, \(currentEar == .right ? "Right" : "Left") Ear"
-    }
+//    private func updateDebugInfo() {
+//        debugInfo = "Phase: \(testPhase.rawValue), Freq: \(Int(currentFrequency))Hz, Level: \(Int(currentDBLevel))dB, \(currentEar == .right ? "Right" : "Left") Ear"
+//    }
     
     // MARK: - Results Processing
     

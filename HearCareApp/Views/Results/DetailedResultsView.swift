@@ -10,8 +10,11 @@ import SwiftUI
 struct DetailedResultsView: View {
     @StateObject private var viewModel: ResultsViewModel
     @State private var selectedTab = 0
+    @State private var isSaving = false
+    @State private var lastSaveTime: Date? = nil
     
     private let tabs = ["Audiogram", "Summary", "Recommendations"]
+    private let saveDebounceInterval: TimeInterval = 2.0 // 2 seconds debounce time
     
     // Original initializer for new test results
     init(testResults: [AudioService.TestResponse]) {
@@ -124,16 +127,36 @@ struct DetailedResultsView: View {
                     .padding(.horizontal)
                 
                 Button(action: {
+                    // Get current time
+                    let now = Date()
+                    
+                    // Check if already saving or if last save was too recent
+                    if isSaving || (lastSaveTime != nil && now.timeIntervalSince(lastSaveTime!) < saveDebounceInterval) {
+                        return
+                    }
+                    
+                    // Update state
+                    isSaving = true
+                    lastSaveTime = now
+                    
+                    // Save results
                     viewModel.saveResults()
+                    
+                    // Reset saving state after a delay to prevent multiple rapid taps
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.isSaving = false
+                    }
                 }) {
                     Text("Save Results")
                         .fontWeight(.medium)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(isSaving ? Color.gray : Color.blue)
                         .foregroundColor(.white)
                         .cornerRadius(10)
+                        .opacity(isSaving ? 0.7 : 1.0) // Visual feedback
                 }
+                .disabled(isSaving)
                 .padding()
             }
         }

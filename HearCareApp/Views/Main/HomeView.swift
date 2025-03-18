@@ -527,14 +527,36 @@ struct HomeView: View {
         }
     }
     
+    // Update the profileOption function in HomeView.swift to use NavigationLink
+    // This replaces the existing profileOption function in HomeView.swift
+    
     private func profileOption(icon: String, title: String, hasToggle: Bool = false) -> some View {
-        Button(action: {
-            // Handle option tap
-            if title == "Settings" {
-                // Alternative way to access debug tools through settings
-                showingDebugTools = true
+        NavigationLink(
+            destination: Group {
+                if title == "Personal Information" {
+                    PersonalInformationView()
+                } else if title == "Hearing Health Profile" {
+                    HearingHealthProfileView()
+                } else if title == "Settings" {
+                    // Handle navigation to settings (and potentially show debug tools)
+                    EmptyView().onAppear {
+                        showingDebugTools = true
+                    }
+                } else if title == "Export Test Results" {
+                    Text("Coming Soon: \(title)")
+                        .font(AppTheme.Typography.title2)
+                        .padding()
+                } else if title == "Help & Support" {
+                    Text("Coming Soon: \(title)")
+                        .font(AppTheme.Typography.title2)
+                        .padding()
+                } else {
+                    Text("Coming Soon: \(title)")
+                        .font(AppTheme.Typography.title2)
+                        .padding()
+                }
             }
-        }) {
+        ) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 18))
