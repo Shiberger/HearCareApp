@@ -3,16 +3,21 @@
 //  HearCareApp
 //
 //  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
+//  Updated with noise level check on 22/4/2568 BE.
 //
 
 import SwiftUI
 
 struct HearingTestView: View {
     @StateObject private var testManager = HearingTestManager()
-    @State private var testStage: TestStage = .instructions
+    @State private var testStage: TestStage = .microphonePermission
     @State private var selectedEar: AudioService.Ear = .right
+    @State private var microphonePermissionGranted = false
+    @State private var showingNoiseAlert = false
+    @ObservedObject private var soundService = AmbientSoundService.shared
     
     enum TestStage {
+        case microphonePermission
         case instructions
         case preparation
         case testing
@@ -22,6 +27,15 @@ struct HearingTestView: View {
     var body: some View {
         VStack(spacing: 0) {
             switch testStage {
+            case .microphonePermission:
+                MicrophonePermissionView(permissionGranted: $microphonePermissionGranted)
+                    .onChange(of: microphonePermissionGranted) { granted in
+                        if granted {
+                            // Permission granted, start monitoring and move to instructions
+                            soundService.startMonitoring()
+                            testStage = .instructions
+                        }
+                    }
             case .instructions:
                 instructionsView
             case .preparation:
@@ -46,6 +60,22 @@ struct HearingTestView: View {
                 }
             }
         }
+        .overlay(
+            ZStack {
+                if showingNoiseAlert {
+                    Color.black.opacity(0.4).ignoresSafeArea()
+                    
+                    // Updated NoiseAlertView with function to handle "Test Anyway" action
+                    NoiseAlertView(
+                        isPresented: $showingNoiseAlert,
+                        onTestAnyway: {
+                            // Function to execute when "Test Anyway" is tapped
+                            proceedToNextStage()
+                        }
+                    )
+                }
+            }
+        )
     }
     
     // MARK: - Instructions View
@@ -62,6 +92,10 @@ struct HearingTestView: View {
                 
                 Text("Hearing Test Instructions")
                     .font(AppTheme.Typography.title2)
+                    .padding(.horizontal)
+                
+                // Add ambient sound monitor
+                AmbientSoundMonitorView()
                     .padding(.horizontal)
                 
                 InfoCard(title: "Before You Begin", icon: "checkmark.circle") {
@@ -85,7 +119,7 @@ struct HearingTestView: View {
                 Spacer(minLength: AppTheme.Spacing.extraLarge)
                 
                 PrimaryButton(title: "Begin Test", icon: "play.fill") {
-                    testStage = .preparation
+                    checkEnvironmentNoise()
                 }
                 .padding(.horizontal)
                 .padding(.bottom, AppTheme.Spacing.extraLarge)
@@ -110,6 +144,42 @@ struct HearingTestView: View {
         }
     }
     
+    // MARK: - Environment Noise Check
+    
+    private func checkEnvironmentNoise() {
+        // Ensure we're monitoring
+        if !soundService.isMonitoring {
+            soundService.startMonitoring()
+            
+            // Give the service a moment to get accurate readings
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                evaluateNoiseLevel()
+            }
+        } else {
+            evaluateNoiseLevel()
+        }
+    }
+    
+    private func evaluateNoiseLevel() {
+        if soundService.ambientNoiseLevel == .excessive {
+            // Show noise alert
+            showingNoiseAlert = true
+        } else {
+            // Environment is acceptable, proceed to preparation
+            proceedToNextStage()
+        }
+    }
+    
+    // Helper method to proceed to the next stage
+    private func proceedToNextStage() {
+        // Determine which stage to go to next
+        if testStage == .instructions {
+            testStage = .preparation
+        } else if testStage == .preparation {
+            testStage = .testing
+        }
+    }
+    
     // MARK: - Preparation View
     
     private var preparationView: some View {
@@ -131,6 +201,10 @@ struct HearingTestView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, AppTheme.Spacing.extraLarge)
             
+            // Show ambient noise level
+            AmbientSoundMonitorView()
+                .padding(.horizontal)
+            
             Spacer()
             
             VStack {
@@ -145,7 +219,12 @@ struct HearingTestView: View {
             Spacer()
             
             PrimaryButton(title: "Start Test", icon: "play.fill") {
-                testStage = .testing
+                // One final environment check before starting test
+                if soundService.ambientNoiseLevel == .excessive {
+                    showingNoiseAlert = true
+                } else {
+                    testStage = .testing
+                }
             }
             .padding(.horizontal)
             .padding(.bottom, AppTheme.Spacing.large)
@@ -295,6 +374,10 @@ struct HearingTestView: View {
             if testManager.testStatus != .testing {
                 testManager.startTest(startingEar: selectedEar)
             }
+            
+            // Disable ambient sound monitoring during the test
+            // to avoid interference with the test tones
+            soundService.stopMonitoring()
         }
         .onChange(of: testManager.testStatus) { newStatus in
             if newStatus == .complete {
@@ -338,6 +421,9 @@ struct HearingTestView: View {
         .onAppear {
             // Save results as soon as the results view appears
             saveTestResults()
+            
+            // Restart ambient sound monitoring for future tests
+            soundService.startMonitoring()
         }
     }
     

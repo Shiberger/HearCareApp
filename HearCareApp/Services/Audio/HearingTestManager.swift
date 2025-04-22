@@ -10,7 +10,10 @@ import AVFoundation
 
 class HearingTestManager: ObservableObject {
     // Main service to generate tones
-    private let audioService = AudioService()
+//    private let audioService = AudioService()
+    private lazy var audioService: AudioService = {
+        return AudioService()
+    }()
     
     // Published properties for UI
     @Published var isPlaying = false

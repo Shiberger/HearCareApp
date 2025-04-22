@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		801467162D757406001BF8EA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 801467152D757406001BF8EA /* GoogleService-Info.plist */; };
 		80FFFA3F2D75562E00D79EB6 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 80FFFA3E2D75562E00D79EB6 /* FirebaseAnalytics */; };
 		80FFFA412D75562E00D79EB6 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 80FFFA402D75562E00D79EB6 /* FirebaseAnalyticsWithoutAdIdSupport */; };
 		80FFFA432D75562E00D79EB6 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 80FFFA422D75562E00D79EB6 /* FirebaseAuth */; };
@@ -21,7 +20,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		801467152D757406001BF8EA /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		80FFF9E92D75492C00D79EB6 /* HearCareApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HearCareApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -72,7 +70,6 @@
 			children = (
 				80FFF9EB2D75492C00D79EB6 /* HearCareApp */,
 				80FFF9EA2D75492C00D79EB6 /* Products */,
-				801467152D757406001BF8EA /* GoogleService-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -162,7 +159,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				801467162D757406001BF8EA /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

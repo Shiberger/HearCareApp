@@ -32,11 +32,28 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         // Configure Firebase
         FirebaseApp.configure()
+        
+        // Initialize GIDSignIn
+        GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+            if let error = error {
+                print("Failed to restore previous Google Sign-In: \(error.localizedDescription)")
+            }
+        }
+        
         return true
     }
     
     // Handle URL schemes for Google Sign-In
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        return GIDSignIn.sharedInstance.handle(url)
+        print("Opening URL: \(url.absoluteString)")
+        
+        // Handle Google Sign-In URL
+        if GIDSignIn.sharedInstance.handle(url) {
+            return true
+        }
+        
+        // Add handling for other URL schemes if needed
+        
+        return false
     }
 }

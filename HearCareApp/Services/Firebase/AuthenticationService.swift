@@ -11,6 +11,7 @@ import Firebase
 import FirebaseAuth
 import GoogleSignIn
 import FirebaseCore
+import WebKit
 
 class AuthenticationService: ObservableObject {
     @Published var user: User?
@@ -38,6 +39,7 @@ class AuthenticationService: ObservableObject {
     
     func signInWithGoogle() {
         isAuthenticating = true
+        error = nil
         
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             self.error = NSError(domain: "AuthenticationService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Client ID not found"])
@@ -45,6 +47,16 @@ class AuthenticationService: ObservableObject {
             return
         }
         
+        // First clear any existing website data to avoid issues with previous sessions
+        let websiteDataTypes = NSSet(array: [WKWebsiteDataTypeCookies, WKWebsiteDataTypeSessionStorage])
+        let date = Date(timeIntervalSince1970: 0)
+        WKWebsiteDataStore.default().removeData(ofTypes: websiteDataTypes as! Set<String>,
+                                              modifiedSince: date) {
+            self.continueGoogleSignIn(clientID: clientID)
+        }
+    }
+
+    private func continueGoogleSignIn(clientID: String) {
         let configuration = GIDConfiguration(clientID: clientID)
         
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -54,29 +66,29 @@ class AuthenticationService: ObservableObject {
             return
         }
         
-        // Fixed GIDSignIn method call
+        // Use signIn(withPresenting:) method for a fresh sign-in
         GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { [weak self] result, error in
             guard let self = self else { return }
             
+            self.isAuthenticating = false
+            
             if let error = error {
+                print("Google Sign-In error: \(error.localizedDescription)")
                 self.error = error
-                self.isAuthenticating = false
                 return
             }
             
             guard let user = result?.user,
                   let idToken = user.idToken?.tokenString else {
                 self.error = NSError(domain: "AuthenticationService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Authentication token not found"])
-                self.isAuthenticating = false
                 return
             }
             
             let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: user.accessToken.tokenString)
             
             Auth.auth().signIn(with: credential) { authResult, error in
-                self.isAuthenticating = false
-                
                 if let error = error {
+                    print("Firebase sign-in error: \(error.localizedDescription)")
                     self.error = error
                     return
                 }
@@ -90,14 +102,20 @@ class AuthenticationService: ObservableObject {
     }
     
     private func updateUserProfileAfterSignIn(user: User?) {
-        guard let user = user else { return }
+        guard let user = user else {
+            print("Error: No user provided to updateUserProfileAfterSignIn")
+            return
+        }
         
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(user.uid)
         
-        userRef.getDocument { snapshot, error in
+        userRef.getDocument { [weak self] snapshot, error in
+            guard let self = self else { return }
+            
             if let error = error {
                 print("Error checking user document: \(error.localizedDescription)")
+                // Don't fail the sign-in process for Firestore errors
                 return
             }
             
@@ -118,33 +136,56 @@ class AuthenticationService: ObservableObject {
             // If user document doesn't exist, create it with additional fields
             if snapshot?.exists != true {
                 userData["createdAt"] = Timestamp(date: Date())
-                userData["hearingConditions"] = [] as [String] // Fixed: Explicitly type as [String]
+                userData["hearingConditions"] = [] as [String] // Explicitly type as [String]
             }
             
             // Set or update the user document
             userRef.setData(userData, merge: true) { error in
                 if let error = error {
                     print("Error updating user document: \(error.localizedDescription)")
+                } else {
+                    print("User profile successfully updated in Firestore")
+                    // Notify the UI that the profile is fully ready if needed
+                    // self.profileSetupComplete = true
                 }
             }
         }
     }
     
     func signOut() {
+        // Clear any errors first
+        error = nil
+        
         do {
+            // Keep track of the current user before signing out
+            let currentUser = Auth.auth().currentUser
+            
+            // Sign out from Firebase
             try Auth.auth().signOut()
             
-            // Fixed: Correct method for signing out of Google
-            GIDSignIn.sharedInstance.disconnect { error in
-                if let error = error {
-                    print("Error disconnecting from Google: \(error.localizedDescription)")
+            // Explicitly disconnect from Google (not just sign out)
+            // This will revoke access and clear tokens
+            GIDSignIn.sharedInstance.disconnect { [weak self] disconnectError in
+                if let disconnectError = disconnectError {
+                    print("Error disconnecting from Google: \(disconnectError.localizedDescription)")
+                    // Don't fail the sign-out process for disconnect errors
+                }
+                
+                // Clear any web session cookies
+                let websiteDataTypes = NSSet(array: [WKWebsiteDataTypeCookies, WKWebsiteDataTypeSessionStorage])
+                let date = Date(timeIntervalSince1970: 0)
+                WKWebsiteDataStore.default().removeData(ofTypes: websiteDataTypes as! Set<String>,
+                                                      modifiedSince: date) {
+                    print("Cleared WKWebsiteDataStore")
+                }
+                
+                // Update UI state
+                DispatchQueue.main.async {
+                    self?.user = nil
                 }
             }
-            
-            DispatchQueue.main.async {
-                self.user = nil
-            }
         } catch let error {
+            print("Error signing out from Firebase: \(error.localizedDescription)")
             self.error = error
         }
     }
