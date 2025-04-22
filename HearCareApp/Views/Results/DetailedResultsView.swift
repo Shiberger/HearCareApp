@@ -12,6 +12,7 @@ struct DetailedResultsView: View {
     @State private var selectedTab = 0
     @State private var isSaving = false
     @State private var lastSaveTime: Date? = nil
+    @State private var resultsSaved = false
     
     private let tabs = ["Audiogram", "Summary", "Recommendations"]
     private let saveDebounceInterval: TimeInterval = 2.0 // 2 seconds debounce time
@@ -142,6 +143,9 @@ struct DetailedResultsView: View {
                     // Save results
                     viewModel.saveResults()
                     
+                    // Mark as saved
+                    resultsSaved = true
+                    
                     // Reset saving state after a delay to prevent multiple rapid taps
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         self.isSaving = false
@@ -156,7 +160,7 @@ struct DetailedResultsView: View {
                         .cornerRadius(10)
                         .opacity(isSaving ? 0.7 : 1.0) // Visual feedback
                 }
-                .disabled(isSaving)
+                .disabled(resultsSaved || isSaving)
                 .padding()
             }
         }
