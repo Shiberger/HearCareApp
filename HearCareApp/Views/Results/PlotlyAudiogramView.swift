@@ -2,21 +2,13 @@
 //  PlotlyAudiogramView.swift
 //  HearCareApp
 //
-//  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
-//
 
-// PlotlyAudiogramView.swift
 import SwiftUI
 import WebKit
 
 struct PlotlyAudiogramView: UIViewRepresentable {
     let rightEarData: [FrequencyDataPoint]
     let leftEarData: [FrequencyDataPoint]
-    
-    struct FrequencyDataPoint {
-        let frequency: Float
-        let hearingLevel: Float
-    }
     
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView()
@@ -29,11 +21,31 @@ struct PlotlyAudiogramView: UIViewRepresentable {
     
     func updateUIView(_ webView: WKWebView, context: Context) {
         // Convert data to JSON format for Plotly
-        let rightEarX = rightEarData.map { String(Int($0.frequency)) }
-        let rightEarY = rightEarData.map { $0.hearingLevel }
+        // UPDATED: Filter out any points that are at maximum threshold (90+)
+        let rightEarX = rightEarData
+            .filter { $0.hearingLevel <= 90 }
+            .map { String(Int($0.frequency)) }
         
-        let leftEarX = leftEarData.map { String(Int($0.frequency)) }
-        let leftEarY = leftEarData.map { $0.hearingLevel }
+        let rightEarY = rightEarData
+            .filter { $0.hearingLevel <= 90 }
+            .map { $0.hearingLevel }
+        
+        let leftEarX = leftEarData
+            .filter { $0.hearingLevel <= 90 }
+            .map { String(Int($0.frequency)) }
+        
+        let leftEarY = leftEarData
+            .filter { $0.hearingLevel <= 90 }
+            .map { $0.hearingLevel }
+        
+        // NEW: Create separate arrays for "no response" points
+        let rightNoResponseX = rightEarData
+            .filter { $0.hearingLevel > 90 }
+            .map { String(Int($0.frequency)) }
+        
+        let leftNoResponseX = leftEarData
+            .filter { $0.hearingLevel > 90 }
+            .map { String(Int($0.frequency)) }
         
         // Create HTML with Plotly
         let html = """
@@ -55,6 +67,8 @@ struct PlotlyAudiogramView: UIViewRepresentable {
                 const rightEarY = \(rightEarY);
                 const leftEarX = \(leftEarX);
                 const leftEarY = \(leftEarY);
+                const rightNoResponseX = \(rightNoResponseX);
+                const leftNoResponseX = \(leftNoResponseX);
                 
                 const layout = {
                     title: 'Audiogram',
@@ -66,7 +80,7 @@ struct PlotlyAudiogramView: UIViewRepresentable {
                     },
                     yaxis: {
                         title: 'Hearing Level (dB)',
-                        range: [0, 120],
+                        range: [0, 95],
                         autorange: 'reversed',
                     },
                     shapes: [
@@ -126,7 +140,7 @@ struct PlotlyAudiogramView: UIViewRepresentable {
                             x0: 0,
                             y0: 80,
                             x1: 1,
-                            y1: 120,
+                            y1: 95,
                             fillcolor: 'rgba(128, 0, 128, 0.1)',
                             line: { width: 0 }
                         }
@@ -144,33 +158,73 @@ struct PlotlyAudiogramView: UIViewRepresentable {
                     }
                 };
                 
-                const rightEarTrace = {
-                    x: rightEarX,
-                    y: rightEarY,
-                    mode: 'lines+markers',
-                    name: 'Right Ear',
-                    line: { color: 'blue' },
-                    marker: { 
-                        symbol: 'circle',
-                        size: 10,
-                        color: 'blue'
-                    }
-                };
+                const traces = [];
                 
-                const leftEarTrace = {
-                    x: leftEarX,
-                    y: leftEarY,
-                    mode: 'lines+markers',
-                    name: 'Left Ear',
-                    line: { color: 'red' },
-                    marker: { 
-                        symbol: 'square',
-                        size: 10,
-                        color: 'red'
-                    }
-                };
+                // Right ear trace
+                if (rightEarX.length > 0) {
+                    traces.push({
+                        x: rightEarX,
+                        y: rightEarY,
+                        mode: 'lines+markers',
+                        name: 'Right Ear',
+                        line: { color: 'blue' },
+                        marker: { 
+                            symbol: 'circle',
+                            size: 10,
+                            color: 'blue'
+                        }
+                    });
+                }
                 
-                Plotly.newPlot('chart', [rightEarTrace, leftEarTrace], layout, {responsive: true});
+                // Left ear trace
+                if (leftEarX.length > 0) {
+                    traces.push({
+                        x: leftEarX,
+                        y: leftEarY,
+                        mode: 'lines+markers',
+                        name: 'Left Ear',
+                        line: { color: 'red' },
+                        marker: { 
+                            symbol: 'square',
+                            size: 10,
+                            color: 'red'
+                        }
+                    });
+                }
+                
+                // Right ear "no response" points
+                if (rightNoResponseX.length > 0) {
+                    traces.push({
+                        x: rightNoResponseX,
+                        y: Array(rightNoResponseX.length).fill(90), // Fixed at 90 dB
+                        mode: 'markers',
+                        name: 'Right Ear (No Response)',
+                        marker: { 
+                            symbol: 'triangle-down',
+                            size: 12,
+                            color: 'blue'
+                        },
+                        showlegend: true
+                    });
+                }
+                
+                // Left ear "no response" points
+                if (leftNoResponseX.length > 0) {
+                    traces.push({
+                        x: leftNoResponseX,
+                        y: Array(leftNoResponseX.length).fill(90), // Fixed at 90 dB
+                        mode: 'markers',
+                        name: 'Left Ear (No Response)',
+                        marker: { 
+                            symbol: 'triangle-down',
+                            size: 12,
+                            color: 'red'
+                        },
+                        showlegend: true
+                    });
+                }
+                
+                Plotly.newPlot('chart', traces, layout, {responsive: true});
                 
                 window.addEventListener('resize', function() {
                     Plotly.relayout('chart', {

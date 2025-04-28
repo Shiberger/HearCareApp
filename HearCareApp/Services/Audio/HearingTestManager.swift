@@ -2,15 +2,12 @@
 //  HearingTestManager.swift
 //  HearCareApp
 //
-//  Created by Hannarong Kaewkiriya on 14/3/2568 BE.
-//
 
 import Foundation
 import AVFoundation
 
 class HearingTestManager: ObservableObject {
     // Main service to generate tones
-//    private let audioService = AudioService()
     private lazy var audioService: AudioService = {
         return AudioService()
     }()
@@ -21,16 +18,15 @@ class HearingTestManager: ObservableObject {
     @Published var currentEar: AudioService.Ear = .right
     @Published var progress: Float = 0.0
     @Published var testStatus: TestStatus = .ready
-    @Published var shouldShowHearingButtons = true // Always show buttons
-    @Published var currentDBLevel: Float = 0 // Expose dB level for UI
-    @Published var debugInfo: String = "" // For debugging
+    @Published var shouldShowHearingButtons = true
+    @Published var currentDBLevel: Float = 0
+    @Published var debugInfo: String = ""
     
     // Response timeout configuration
-    private let responseTimeoutDuration: TimeInterval = 5.0  // Longer timeout - 5 seconds
+    private let responseTimeoutDuration: TimeInterval = 5.0
     private var responseTimeoutWorkItem: DispatchWorkItem?
     
     // Hughson-Westlake protocol parameters
-    // Starting with 1kHz as per standard protocol
     private let standardFrequencySequence: [Float] = [1000, 2000, 4000, 8000, 500, 1000]
     private let dbHLLevels: [Float] = [
         -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45,
@@ -46,12 +42,15 @@ class HearingTestManager: ObservableObject {
         90: 0.90, 95: 0.95, 100: 1.0
     ]
     
+    // Maximum testable level in dB - match this with Debug Tools
+    private let maxTestableDBLevel: Float = 90.0
+    
     // Test state variables
     private var currentFrequencyIndex = 0
     private var dbLevelIndex = 0
     private var responseCount = 0
     private var positiveResponseCount = 0
-    private var lastLevel: Float = 0 // To track level changes
+    private var lastLevel: Float = 0
     private var testPhase: TestPhase = .familiarization
     private var testResults: [AudioService.TestResponse] = []
     private var rightEarThresholds: [Float: Float] = [:]
@@ -94,7 +93,6 @@ class HearingTestManager: ObservableObject {
         responseCount = 0
         positiveResponseCount = 0
         
-        // updateDebugInfo()
         // Begin first tone
         playTone()
     }
@@ -117,7 +115,6 @@ class HearingTestManager: ObservableObject {
             )
             
             self.isPlaying = true
-            // self.updateDebugInfo()
             
             // Set a timeout for response - using a DispatchWorkItem that can be cancelled
             self.setResponseTimeout()
@@ -179,25 +176,24 @@ class HearingTestManager: ObservableObject {
         case .confirmation:
             handleConfirmationResponse(heard: heard)
         }
-        
-        // updateDebugInfo()
     }
     
     private func handleFamiliarizationResponse(heard: Bool) {
         if heard {
+            // Record the level at which they heard the tone
+            recordThreshold() // Record actual current level
+            
             // Patient is familiarized, move to descending phase
             testPhase = .descending
             lastLevel = currentDBLevel
-            // Re-test at same level to begin descent
             playTone()
         } else {
             // Increase by 20dB and try again
             let wasIncreased = increaseDBLevel(by: 20)
             
-            // If we couldn't increase (already at max), record "not heard" and move on
+            // If we couldn't increase (already at max), record current level and move on
             if !wasIncreased && currentDBLevel >= 90 {
-                // Already at very high level and still not heard, record as profound loss
-                recordThreshold(atLevel: 100) // Use 100 dB to indicate profound loss
+                recordThreshold() // Record the actual max level
                 moveToNextFrequencyOrEar()
             } else {
                 playTone()
@@ -246,9 +242,9 @@ class HearingTestManager: ObservableObject {
             // Not heard, increase by 5dB
             let wasIncreased = increaseDBLevel(by: 5)
             
-            // If we couldn't increase and already at high level, record as profound loss
+            // If we couldn't increase and already at high level, record as not heard
             if !wasIncreased && currentDBLevel >= 90 {
-                recordThreshold(atLevel: 100) // Use 100 dB to indicate profound loss
+                recordThreshold(atLevel: maxTestableDBLevel, notHeard: true)
                 moveToNextFrequencyOrEar()
             } else {
                 lastLevel = currentDBLevel
@@ -319,14 +315,14 @@ class HearingTestManager: ObservableObject {
         return false
     }
     
-    private func recordThreshold(atLevel: Float? = nil) {
+    private func recordThreshold(atLevel: Float? = nil, notHeard: Bool = false) {
         // Use provided level or current level
         let level = atLevel ?? currentDBLevel
         
-        // Record threshold for current frequency and ear
+        // Record the actual dB level, not an extreme value
         let response = AudioService.TestResponse(
             frequency: currentFrequency,
-            volumeHeard: level, // Storing actual dB HL value
+            volumeHeard: level, // Record the actual level
             ear: currentEar,
             timestamp: Date()
         )
@@ -386,11 +382,6 @@ class HearingTestManager: ObservableObject {
         testStatus = .complete
         progress = 1.0
     }
-    
-    // For debugging purposes
-//    private func updateDebugInfo() {
-//        debugInfo = "Phase: \(testPhase.rawValue), Freq: \(Int(currentFrequency))Hz, Level: \(Int(currentDBLevel))dB, \(currentEar == .right ? "Right" : "Left") Ear"
-//    }
     
     // MARK: - Results Processing
     

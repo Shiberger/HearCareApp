@@ -2,8 +2,6 @@
 //  ResultsProcessor.swift
 //  HearCareApp
 //
-//  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
-//
 
 import Foundation
 
@@ -34,6 +32,9 @@ class ResultsProcessor {
                 // Convert volume to hearing level in dB
                 let hearingLevel = volumeTodB(lowestVolumeHeard)
                 rightEarHearingLevel[Float(frequency)] = hearingLevel
+            } else {
+                // If no response for this frequency, use default maximum level
+                rightEarHearingLevel[Float(frequency)] = 90.0 // Consistent with Debug Tools
             }
         }
         
@@ -45,6 +46,9 @@ class ResultsProcessor {
                 // Convert volume to hearing level in dB
                 let hearingLevel = volumeTodB(lowestVolumeHeard)
                 leftEarHearingLevel[Float(frequency)] = hearingLevel
+            } else {
+                // If no response for this frequency, use default maximum level
+                leftEarHearingLevel[Float(frequency)] = 90.0 // Consistent with Debug Tools
             }
         }
         
@@ -80,9 +84,15 @@ class ResultsProcessor {
     }
     
     private func volumeTodB(_ volume: Float) -> Float {
-        if volume == Float.infinity {
-            return 120.0  // Max testable threshold
+        // UPDATED: Use consistent value for "not heard" responses
+        // REMOVE the special case for Float.infinity
+        // Instead, use the actual dB values recorded during the test
+        
+        // Return the volume directly if it's already in dB
+        if volume >= 0 && volume <= 100 {
+            return volume
         }
+        
         let volumeLevels: [Float: Float] = [
             0.05: 0,   // Normal hearing threshold
             0.1: 10,
@@ -94,9 +104,11 @@ class ResultsProcessor {
             0.9: 70,
             1.0: 80    // Add higher volumes if your test supports them
         ]
+        
         if let dB = volumeLevels[volume] {
             return dB
         }
+        
         // Linear interpolation for intermediate values
         let sortedKeys = volumeLevels.keys.sorted()
         for i in 0..<(sortedKeys.count - 1) {
@@ -108,7 +120,9 @@ class ResultsProcessor {
                 return dB1 + (dB2 - dB1) * (volume - v1) / (v2 - v1)
             }
         }
-        return min(max(volume * 80.0, 0), 120)  // Fallback, capped at 120 dB
+        
+        // Fallback formula, capped to match Debug Tools
+        return min(max(volume * 80.0, 0), 90.0)
     }
     
     private func generateRecommendations(
@@ -121,6 +135,11 @@ class ResultsProcessor {
             HearingModelService.HearingClassification.allCases.firstIndex(of: classifications[$0])! <
             HearingModelService.HearingClassification.allCases.firstIndex(of: classifications[$1])!
         }) ?? 0
+        
+//        let worstIndex = classifications.indices.max(by: {
+//            HearingModelService.HearingClassification.allCases.firstIndex(of: classifications[$0])!
+//            HearingModelService.HearingClassification.allCases.firstIndex(of: classifications[$1])!
+//        }) ?? 0
         
         // Get recommendations based on the worse ear
         var recommendations = classifications[worstIndex].recommendations

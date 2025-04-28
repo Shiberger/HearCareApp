@@ -2,8 +2,6 @@
 //  AudiogramChartView.swift
 //  HearCareApp
 //
-//  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
-//
 
 import SwiftUI
 import Charts
@@ -18,7 +16,7 @@ struct AudiogramChartView: View {
     private let moderateLossRange = 40..<55
     private let moderatelySevereLossRange = 55..<70
     private let severeLossRange = 70..<90
-    private let profoundLossRange = 90..<120
+    private let profoundLossRange = 90..<100
     
     // Define ordered frequencies for X-axis (in clinical order)
     private let orderedFrequencies = ["500", "1k", "2k", "4k", "8k"]
@@ -110,7 +108,7 @@ struct AudiogramChartView: View {
                     y: .value("Hearing Level", point.hearingLevel)
                 )
                 .foregroundStyle(.red)
-                .symbol(.circle)
+                .symbol(point.hearingLevel >= 90 ? .square : .circle) // Special symbol for "not heard"
                 .symbolSize(100)
             }
             
@@ -130,14 +128,14 @@ struct AudiogramChartView: View {
                     y: .value("Hearing Level", point.hearingLevel)
                 )
                 .foregroundStyle(.blue)
-                .symbol(.cross)
+                .symbol(point.hearingLevel >= 90 ? .plus : .cross) // Special symbol for "not heard"
                 .symbolSize(100)
             }
         }
-        // Most critical part: set Y-axis scale from -10 to 120 with -10 at top
-        .chartYScale(domain: -10...120)
+        // UPDATED: Use Y-axis scale from -10 to 95 to match Debug Tools
+        .chartYScale(domain: -10...95)
         .chartYAxis {
-            AxisMarks(position: .leading, values: [-10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]) { value in
+            AxisMarks(position: .leading, values: [-10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90]) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [5, 5]))
                 AxisValueLabel {
                     if let intValue = value.as(Int.self) {
@@ -267,8 +265,33 @@ struct AudiogramChartView: View {
                         Text("Profound (90+ dB)")
                             .font(.caption)
                     }
+                    
+                    // Add special symbols for "not heard" responses
+                    GridRow {
+                        Square()
+                            .fill(Color.red)
+                            .frame(width: 12, height: 12)
+                        Text("No Response (Right)")
+                            .font(.caption)
+                        
+                        Text("+")
+                            .font(.system(size: 16))
+                            .foregroundColor(.blue)
+                            .frame(width: 12, height: 12)
+                        Text("No Response (Left)")
+                            .font(.caption)
+                    }
                 }
             }
         }
+    }
+}
+
+// Simple Square shape for the legend
+struct Square: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.addRect(rect)
+        return path
     }
 }
