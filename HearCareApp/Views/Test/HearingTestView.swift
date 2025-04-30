@@ -553,12 +553,9 @@ struct HearingTestView: View {
             
             Spacer()
             
-            // View results button
+            // View results button - MODIFIED: removed onAppear to prevent auto-saving
             NavigationLink(
                 destination: DetailedResultsView(testResults: testManager.getUserResponses())
-                    .onAppear {
-                        saveTestResults()
-                    }
             ) {
                 Text("View Detailed Results")
                     .primaryButton()
@@ -568,9 +565,9 @@ struct HearingTestView: View {
         }
         .padding()
         .onAppear {
-            // Save results as soon as the results view appears
-            addDebugLog("Results view appeared - saving test data")
-            saveTestResults()
+            // REMOVED: saveTestResults() call to prevent auto-saving
+            // Only log completion but don't save
+            addDebugLog("Results view appeared")
             
             // Restart ambient sound monitoring for future tests
             soundService.startMonitoring()
@@ -604,6 +601,7 @@ struct HearingTestView: View {
     // MARK: - Data Saving
     
     private func saveTestResults() {
+        addDebugLog("Processing test results for potential saving...")
         addDebugLog("Processing and saving test results...")
         let responses = testManager.getUserResponses()
         addDebugLog("Total responses: \(responses.count)")

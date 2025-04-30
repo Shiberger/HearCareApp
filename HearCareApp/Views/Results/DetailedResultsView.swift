@@ -11,11 +11,10 @@ struct DetailedResultsView: View {
     @StateObject private var viewModel: ResultsViewModel
     @State private var selectedTab = 0
     @State private var isSaving = false
-    @State private var lastSaveTime: Date? = nil
-    @State private var resultsSaved = false
+    @State private var showingSaveConfirmation = false // For success popup
+    @State private var resultsSaved = false // Track if already saved
     
     private let tabs = ["Audiogram", "Summary", "Recommendations"]
-    private let saveDebounceInterval: TimeInterval = 2.0 // 2 seconds debounce time
     
     // Original initializer for new test results
     init(testResults: [AudioService.TestResponse]) {
@@ -25,6 +24,8 @@ struct DetailedResultsView: View {
     // New initializer for historical test results
     init(testResult: TestResult) {
         self._viewModel = StateObject(wrappedValue: ResultsViewModel(testResult: testResult))
+        // If viewing historical results, mark as already saved
+        self._resultsSaved = State(initialValue: true)
     }
     
     // Additional initializer that accepts a view model directly
@@ -91,6 +92,14 @@ struct DetailedResultsView: View {
             }
         }
         .background(Color("BackgroundColor").ignoresSafeArea())
+        // Add alert for save confirmation
+        .alert(isPresented: $showingSaveConfirmation) {
+            Alert(
+                title: Text("Success"),
+                message: Text("Test results saved successfully"),
+                dismissButton: .default(Text("OK"))
+            )
+        }
     }
     
     @Namespace private var namespace
@@ -103,42 +112,37 @@ struct DetailedResultsView: View {
                     .fontWeight(.semibold)
                     .padding(.horizontal)
                 
-                // Use either the Swift Charts or WebView implementation
-                AudiogramChartView(
+                // OPTION 1: Use PlotlyAudiogramView (WebView-based)
+                PlotlyAudiogramView(
                     rightEarData: viewModel.rightEarDataPoints,
                     leftEarData: viewModel.leftEarDataPoints
                 )
+                .frame(height: 400)
                 .padding(.horizontal)
                 
-                // Alternative: Use Plotly WebView
-                // PlotlyAudiogramView(
-                //     rightEarData: viewModel.rightEarDataPoints,
-                //     leftEarData: viewModel.leftEarDataPoints
+                // OPTION 2: Use SwiftUI Charts-based AudiogramChartView
+                // AudiogramChartView(
+                //    rightEarData: viewModel.rightEarDataPoints,
+                //    leftEarData: viewModel.leftEarDataPoints
                 // )
-                // .frame(height: 400)
                 // .padding(.horizontal)
                 
                 Text("About Your Audiogram")
                     .font(.headline)
                     .padding(.horizontal)
                 
-                Text("An audiogram shows your hearing ability across different frequencies. Lower values indicate better hearing. The chart shows results for both ears, helping identify patterns in hearing loss.")
+                Text("An audiogram shows your hearing ability across different frequencies. Lower values on the chart indicate better hearing (displayed at the top). The chart shows results for both ears, helping identify patterns in hearing loss.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
                 
+                // Modified Save Results Button
                 Button(action: {
-                    // Get current time
-                    let now = Date()
+                    // Prevent saving if already saved or currently saving
+                    guard !resultsSaved && !isSaving else { return }
                     
-                    // Check if already saving or if last save was too recent
-                    if isSaving || (lastSaveTime != nil && now.timeIntervalSince(lastSaveTime!) < saveDebounceInterval) {
-                        return
-                    }
-                    
-                    // Update state
+                    // Indicate saving in progress
                     isSaving = true
-                    lastSaveTime = now
                     
                     // Save results
                     viewModel.saveResults()
@@ -146,22 +150,40 @@ struct DetailedResultsView: View {
                     // Mark as saved
                     resultsSaved = true
                     
-                    // Reset saving state after a delay to prevent multiple rapid taps
+                    // Show confirmation popup
+                    showingSaveConfirmation = true
+                    
+                    // Reset saving state after a delay
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        self.isSaving = false
+                        isSaving = false
                     }
                 }) {
-                    Text("Save Results")
-                        .fontWeight(.medium)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isSaving ? Color.gray : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .opacity(isSaving ? 0.7 : 1.0) // Visual feedback
+                    HStack {
+                        if isSaving {
+                            // Show spinner while saving
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .padding(.trailing, 5)
+                        }
+                        
+                        Text(resultsSaved ? "Results Saved" : "Save Results")
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(resultsSaved ? Color.gray : Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                    .opacity(isSaving ? 0.7 : 1.0) // Visual feedback
                 }
                 .disabled(resultsSaved || isSaving)
                 .padding()
+            }
+        }
+        .onAppear {
+            // Check if this is a historical result (already saved)
+            if viewModel.isHistoricalResult {
+                resultsSaved = true
             }
         }
     }
