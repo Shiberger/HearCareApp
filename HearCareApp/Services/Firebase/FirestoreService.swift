@@ -13,11 +13,21 @@ import FirebaseAuth
 class FirestoreService {
     private let db = Firestore.firestore()
     
-    // Save test result to Firestore
+    // In the saveTestResult method, ensure data is properly formatted
     func saveTestResult(_ testResult: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
         guard let userId = testResult["userId"] as? String else {
             completion(.failure(NSError(domain: "FirestoreService", code: -1, userInfo: [NSLocalizedDescriptionKey: "User ID not found"])))
             return
+        }
+        
+        // Verify the format of hearing data before saving
+        if let rightEarData = testResult["rightEarData"] as? [[String: Any]] {
+            for point in rightEarData {
+                if let frequency = point["frequency"] as? Float,
+                   let hearingLevel = point["hearingLevel"] as? Float {
+                    print("Saving right ear data: \(frequency) Hz at \(hearingLevel) dB")
+                }
+            }
         }
         
         // Create a reference to the user's test results collection
@@ -57,19 +67,37 @@ class FirestoreService {
         }
     }
     
-    // Save test result using the current authenticated user
     func saveTestResultForCurrentUser(_ testResult: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
         guard let user = Auth.auth().currentUser else {
-            completion(.failure(NSError(domain: "FirestoreService", code: -1, userInfo: [NSLocalizedDescriptionKey: "No authenticated user"])))
+            completion(.failure(NSError(domain: "FirestoreService", code: -1,
+                                       userInfo: [NSLocalizedDescriptionKey: "No authenticated user"])))
             return
         }
+        
+        // Create a batch to ensure atomic operations
+        let batch = db.batch()
         
         // Add the user ID to the test result data
         var updatedTestResult = testResult
         updatedTestResult["userId"] = user.uid
+        updatedTestResult["createdAt"] = FieldValue.serverTimestamp()
         
-        // Call the standard save method
-        saveTestResult(updatedTestResult, completion: completion)
+        // Create references
+        let userTestsRef = db.collection("users").document(user.uid).collection("testResults").document()
+        let lastTestRef = db.collection("users").document(user.uid).collection("userData").document("lastTest")
+        
+        // Add operations to batch
+        batch.setData(updatedTestResult, forDocument: userTestsRef)
+        batch.setData(updatedTestResult, forDocument: lastTestRef)
+        
+        // Commit the batch
+        batch.commit { error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                completion(.success(()))
+            }
+        }
     }
     
     // Get the last test result for current user

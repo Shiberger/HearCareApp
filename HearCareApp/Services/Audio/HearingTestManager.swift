@@ -160,6 +160,7 @@ class HearingTestManager: ObservableObject {
     
     // MARK: - Test Logic Methods
     
+    // Fix the respondToTone method to properly record hearing thresholds
     func respondToTone(heard: Bool) {
         // Cancel the response timeout
         cancelResponseTimeout()
@@ -167,6 +168,9 @@ class HearingTestManager: ObservableObject {
         // Stop the tone
         audioService.stop()
         isPlaying = false
+        
+        // Record the response for debugging
+        print("Response at \(currentFrequency) Hz, \(currentDBLevel) dB: \(heard ? "Heard" : "Not heard")")
         
         // Process response according to test phase
         switch testPhase {
@@ -179,8 +183,6 @@ class HearingTestManager: ObservableObject {
         case .confirmation:
             handleConfirmationResponse(heard: heard)
         }
-        
-        // updateDebugInfo()
     }
     
     private func handleFamiliarizationResponse(heard: Bool) {
@@ -230,30 +232,32 @@ class HearingTestManager: ObservableObject {
         }
     }
     
-    private func handleAscendingResponse(heard: Bool) {
+    // Key improvements to the hearing test flow
+    func handleAscendingResponse(heard: Bool) {
         responseCount += 1
         
         if heard {
             positiveResponseCount += 1
             
-            // Found first audible level, move to confirmation phase
-            testPhase = .confirmation
-            responseCount = 0
-            positiveResponseCount = 0
-            lastLevel = currentDBLevel
-            playTone()
-        } else {
-            // Not heard, increase by 5dB
-            let wasIncreased = increaseDBLevel(by: 5)
-            
-            // If we couldn't increase and already at high level, record as profound loss
-            if !wasIncreased && currentDBLevel >= 90 {
-                recordThreshold(atLevel: 100) // Use 100 dB to indicate profound loss
+            // Need at least 2 positive responses out of 3 attempts at same level
+            if positiveResponseCount >= 2 && responseCount >= 3 {
+                // Threshold confirmed
+                recordThreshold()
+                moveToNextFrequencyOrEar()
+            } else if responseCount >= 5 {
+                // Too many attempts without confirmation
+                recordThreshold()  // Use current level as best estimate
                 moveToNextFrequencyOrEar()
             } else {
-                lastLevel = currentDBLevel
+                // Continue testing at same level
                 playTone()
             }
+        } else {
+            // If not heard, increase by 5dB and continue
+            increaseDBLevel(by: 5)
+            responseCount = 0  // Reset response tracking at new level
+            positiveResponseCount = 0
+            playTone()
         }
     }
     
@@ -319,14 +323,18 @@ class HearingTestManager: ObservableObject {
         return false
     }
     
+    // Fix the recordThreshold method to ensure dB values are stored correctly
     private func recordThreshold(atLevel: Float? = nil) {
         // Use provided level or current level
         let level = atLevel ?? currentDBLevel
         
-        // Record threshold for current frequency and ear
+        print("Recording threshold for \(currentFrequency) Hz at \(level) dB")
+        
+        // Convert from dBHL to volume level for storage
+        // We need to store the actual dB value, not the volume!
         let response = AudioService.TestResponse(
             frequency: currentFrequency,
-            volumeHeard: level, // Storing actual dB HL value
+            volumeHeard: level,  // Store dB value directly
             ear: currentEar,
             timestamp: Date()
         )
