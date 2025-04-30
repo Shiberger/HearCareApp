@@ -298,15 +298,12 @@ struct HearingTestView: View {
     
     private var earSelectionSection: some View {
         VStack {
-            Text("Select which ear to test first")
+            Text("The test will start with your right ear")
                 .font(AppTheme.Typography.headline)
                 .padding(.bottom)
             
-            EarSelectionView(selectedEar: $selectedEar)
-                .onChange(of: selectedEar) { newEar in
-                    let ear = newEar == .right ? "Right" : "Left"
-                    addDebugLog("Selected ear changed to: \(ear)")
-                }
+            EarSelectionView(selectedEar: .constant(.right)) // Force constant binding to right ear
+                .disabled(true) // Optional: disable interaction
         }
         .padding()
     }
