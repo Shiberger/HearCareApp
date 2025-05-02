@@ -3,7 +3,7 @@
 //  HearCareApp
 //
 //  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
-//  Updated with correct symbol types
+//
 
 import SwiftUI
 import Charts
@@ -27,6 +27,9 @@ struct AudiogramChartView: View {
     private let rightCircleSize: CGFloat = 40  // Red circle (right ear, air conduction)
     private let leftXSize: CGFloat = 50        // Blue X (left ear, air conduction)
     private let lineWidth: CGFloat = 2.5       // Line width for connecting marks
+    
+    // Maximum dB value for inversion calculations
+    private let maxDBValue: Float = 120.0
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -63,7 +66,7 @@ struct AudiogramChartView: View {
             // Add no response markers
             addNoResponseMarkers()
         }
-        // Critical: set Y-axis scale with proper domain and inversion for audiogram
+        // Using standard Y-axis scale but we'll invert the data points
         .chartYScale(domain: -10...120)
         .chartYAxis {
             AxisMarks(position: .leading, values: [-10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]) { value in
@@ -104,9 +107,10 @@ struct AudiogramChartView: View {
     }
     
     // MARK: - Chart Components
+    // UPDATED: Manually inverted background zones
     @ChartContentBuilder
     private func addBackgroundZones() -> some ChartContent {
-        // Normal hearing zone
+        // Normal hearing zone - now at the bottom of the chart
         RectangleMark(
             xStart: .value("Frequency", orderedFrequencies.first!),
             xEnd: .value("Frequency", orderedFrequencies.last!),
@@ -151,7 +155,7 @@ struct AudiogramChartView: View {
         )
         .foregroundStyle(Color.red.opacity(0.1))
         
-        // Profound loss zone
+        // Profound loss zone - now at the top of the chart
         RectangleMark(
             xStart: .value("Frequency", orderedFrequencies.first!),
             xEnd: .value("Frequency", orderedFrequencies.last!),
@@ -161,6 +165,7 @@ struct AudiogramChartView: View {
         .foregroundStyle(Color.purple.opacity(0.1))
     }
     
+    // UPDATED: Using original data without inversion for right ear
     @ChartContentBuilder
     private func addRightEarData() -> some ChartContent {
         // Right ear lines
@@ -201,6 +206,7 @@ struct AudiogramChartView: View {
         }
     }
     
+    // UPDATED: Using original data without inversion for left ear
     @ChartContentBuilder
     private func addLeftEarData() -> some ChartContent {
         // Left ear lines
@@ -241,6 +247,7 @@ struct AudiogramChartView: View {
         }
     }
     
+    // UPDATED: Using no response indicators at bottom of chart (high dB)
     @ChartContentBuilder
     private func addNoResponseMarkers() -> some ChartContent {
         // Right ear no response markers
@@ -248,10 +255,10 @@ struct AudiogramChartView: View {
         ForEach(rightNoResponsePoints) { point in
             PointMark(
                 x: .value("Frequency", standardizeFrequencyLabel(point.frequencyLabel)),
-                y: .value("Hearing Level", 120)
+                y: .value("Hearing Level", 120)  // Position at bottom of chart for high dB (no response)
             )
             .foregroundStyle(.red)
-            .symbol(.triangle)  // Changed from .arrow.down to .triangle
+            .symbol(.triangle)
             .symbolSize(40)
         }
         
@@ -260,10 +267,10 @@ struct AudiogramChartView: View {
         ForEach(leftNoResponsePoints) { point in
             PointMark(
                 x: .value("Frequency", standardizeFrequencyLabel(point.frequencyLabel)),
-                y: .value("Hearing Level", 120)
+                y: .value("Hearing Level", 120)  // Position at bottom of chart for high dB (no response)
             )
             .foregroundStyle(.blue)
-            .symbol(.triangle)  // Changed from .arrow.down to .triangle
+            .symbol(.triangle)
             .symbolSize(40)
         }
     }
@@ -365,9 +372,9 @@ struct AudiogramChartView: View {
                         .foregroundColor(.primary)
                 }
                 
-                // No response legend - updated to match the triangle symbol
+                // No response legend
                 HStack(spacing: 8) {
-                    Image(systemName: "triangle.fill")  // Changed to match the symbol used in the chart
+                    Image(systemName: "triangle.fill")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .frame(width: 12, height: 12)

@@ -31,7 +31,8 @@ class HearingTestManager: ObservableObject {
     
     // Hughson-Westlake protocol parameters
     // Starting with 1kHz as per standard protocol
-    private let standardFrequencySequence: [Float] = [1000, 2000, 4000, 8000, 500, 1000]
+    private let standardFrequencySequence: [Float] = [500, 1000, 2000, 4000, 8000]
+    
     private let dbHLLevels: [Float] = [
         -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45,
         50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100
@@ -207,10 +208,12 @@ class HearingTestManager: ObservableObject {
         }
     }
     
+    // Add a clearer log in handleAscendingResponse and handleDescendingResponse:
     private func handleDescendingResponse(heard: Bool) {
         if heard {
             // Decrease by 10dB
             let wasDecreased = decreaseDBLevel(by: 10)
+            print("Descending phase: Heard at \(lastLevel)dB, decreasing to \(currentDBLevel)dB")
             if !wasDecreased {
                 // Already at minimum, record this as threshold and move on
                 recordThreshold()
@@ -227,6 +230,7 @@ class HearingTestManager: ObservableObject {
             
             // Increase by 5dB for ascending phase
             increaseDBLevel(by: 5)
+            print("Switching to ascending phase at \(currentDBLevel)dB")
             lastLevel = currentDBLevel
             playTone()
         }
@@ -238,14 +242,17 @@ class HearingTestManager: ObservableObject {
         
         if heard {
             positiveResponseCount += 1
+            print("Ascending phase: Heard at \(currentDBLevel)dB, positive responses: \(positiveResponseCount)/\(responseCount)")
             
             // Need at least 2 positive responses out of 3 attempts at same level
             if positiveResponseCount >= 2 && responseCount >= 3 {
                 // Threshold confirmed
+                print("Threshold confirmed at \(currentDBLevel)dB")
                 recordThreshold()
                 moveToNextFrequencyOrEar()
             } else if responseCount >= 5 {
                 // Too many attempts without confirmation
+                print("Maximum attempts reached, recording \(currentDBLevel)dB as threshold")
                 recordThreshold()  // Use current level as best estimate
                 moveToNextFrequencyOrEar()
             } else {
@@ -255,6 +262,7 @@ class HearingTestManager: ObservableObject {
         } else {
             // If not heard, increase by 5dB and continue
             increaseDBLevel(by: 5)
+            print("Ascending phase: Not heard at \(lastLevel)dB, increasing to \(currentDBLevel)dB")
             responseCount = 0  // Reset response tracking at new level
             positiveResponseCount = 0
             playTone()
@@ -331,7 +339,7 @@ class HearingTestManager: ObservableObject {
         print("Recording threshold for \(currentFrequency) Hz at \(level) dB")
         
         // Convert from dBHL to volume level for storage
-        // We need to store the actual dB value, not the volume!
+        // Store the actual dB value directly
         let response = AudioService.TestResponse(
             frequency: currentFrequency,
             volumeHeard: level,  // Store dB value directly

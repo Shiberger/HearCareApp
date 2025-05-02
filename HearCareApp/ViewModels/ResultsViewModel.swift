@@ -17,6 +17,7 @@ class ResultsViewModel: ObservableObject {
     @Published var recommendations: [String] = []
     @Published var testDate: Date = Date()
     @Published var testDuration: String = "8 minutes"
+    @Published var isSavedResult: Bool = false // Track if results have been saved
     
     struct FrequencyBreakdownItem {
         let frequency: Float
@@ -27,22 +28,28 @@ class ResultsViewModel: ObservableObject {
     
     var frequencyBreakdown: [FrequencyBreakdownItem] = []
     
+    // Store test result when viewing from history
+    private var historyTestResult: TestResult?
+    
     private let resultsProcessor = ResultsProcessor()
     private let firestore = FirestoreService()
     private var cancellables = Set<AnyCancellable>()
     
-    // Default initializer needed for convenience init
+    // Default initializer
     init() {
         // Empty initialization
     }
     
+    // Initialize with test responses
     init(testResponses: [AudioService.TestResponse]) {
         processTestResponses(testResponses)
     }
     
-    // Convenience initializer for test history
-    convenience init(testResult: TestResult) {
-        self.init()
+    // Initialize with a test result (for history)
+    init(testResult: TestResult) {
+        // Store the original test result
+        self.historyTestResult = testResult
+        self.isSavedResult = true // Mark as already saved
         
         // Populate view model properties from the test result
         self.rightEarDataPoints = testResult.rightEarData.map {
@@ -64,6 +71,11 @@ class ResultsViewModel: ObservableObject {
         
         // Generate recommendations based on classifications
         generateRecommendations()
+    }
+    
+    // Check if this is a historical result (already saved)
+    var isHistoricalResult: Bool {
+        return historyTestResult != nil
     }
     
     private func processTestResponses(_ responses: [AudioService.TestResponse]) {
@@ -93,7 +105,7 @@ class ResultsViewModel: ObservableObject {
     }
     
     // Helper method to update frequency breakdown
-    private func updateFrequencyBreakdown() {
+    func updateFrequencyBreakdown() {
         let frequencies: [Float] = [500, 1000, 2000, 4000, 8000]
         frequencyBreakdown = frequencies.map { frequency in
             // Find the data points for this frequency
@@ -121,7 +133,7 @@ class ResultsViewModel: ObservableObject {
     }
     
     // Helper method to generate recommendations if needed
-    private func generateRecommendations() {
+    func generateRecommendations() {
         // Basic recommendations based on classification
         var recommendations: [String] = []
         
@@ -207,7 +219,14 @@ class ResultsViewModel: ObservableObject {
         }
     }
     
+    // MODIFIED: Updated to prevent duplicate saves and track save status
     func saveResults() {
+        // Check if already saved to prevent duplicates
+        if isSavedResult {
+            print("Results already saved, skipping duplicate save")
+            return
+        }
+        
         // Save to Firestore
         guard let user = Auth.auth().currentUser else {
             print("No authenticated user")
@@ -225,12 +244,18 @@ class ResultsViewModel: ObservableObject {
             "recommendations": recommendations
         ] as [String: Any]
         
-        firestore.saveTestResult(testResult) { result in
-            switch result {
-            case .success:
-                print("Test results saved successfully")
-            case .failure(let error):
-                print("Failed to save test results: \(error.localizedDescription)")
+        firestore.saveTestResult(testResult) { [weak self] result in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    print("Test results saved successfully")
+                    self.isSavedResult = true
+                    self.objectWillChange.send() // Notify observers of change
+                case .failure(let error):
+                    print("Failed to save test results: \(error.localizedDescription)")
+                }
             }
         }
     }
