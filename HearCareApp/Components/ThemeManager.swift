@@ -51,7 +51,7 @@ struct AppTheme {
     // Shadows
     static func cardShadow() -> some View {
         return RoundedRectangle(cornerRadius: Radius.medium)
-            .fill(cardColor)
+            .fill(backgroundColor)
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
     }
 }

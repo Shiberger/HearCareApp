@@ -8,18 +8,25 @@
 // CustomComponents.swift
 import SwiftUI
 
+// สีพาสเทล
+  private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
+  private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
+  private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
+
 // Custom Button
 struct PrimaryButton: View {
     let title: String
     let action: () -> Void
     let icon: String?
     var isDisabled: Bool = false
+
     
     init(title: String, icon: String? = nil, isDisabled: Bool = false, action: @escaping () -> Void) {
         self.title = title
         self.icon = icon
         self.isDisabled = isDisabled
         self.action = action
+
     }
     
     var body: some View {
@@ -29,14 +36,16 @@ struct PrimaryButton: View {
                     Image(systemName: icon)
                         .font(.system(size: 16, weight: .semibold))
                 }
-                
                 Text(title)
+                
             }
+        
             .primaryButton()
         }
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1)
     }
+       
 }
 
 // Custom Text Field
@@ -87,6 +96,7 @@ struct InfoCard<Content: View>: View {
     }
     
     var body: some View {
+
         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
             HStack {
                 if let icon = icon {
@@ -103,6 +113,7 @@ struct InfoCard<Content: View>: View {
             content
         }
         .cardStyle()
+
     }
 }
 
