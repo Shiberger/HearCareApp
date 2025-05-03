@@ -26,6 +26,23 @@ struct CalibrationView: View {
         "Completion"
     ]
     
+    // Add a state to track which alert to show
+    @State private var activeAlert: ActiveAlert? = nil
+    
+    enum ActiveAlert: Identifiable {
+        case headphoneWarning
+        case completionSuccess
+        
+        var id: Int {
+            switch self {
+            case .headphoneWarning:
+                return 0
+            case .completionSuccess:
+                return 1
+            }
+        }
+    }
+    
     var body: some View {
         VStack(spacing: AppTheme.Spacing.medium) {
             // Header
@@ -75,15 +92,24 @@ struct CalibrationView: View {
             // Stop any playing tones
             calibrationService.stopTone()
         }
-        .alert(isPresented: $showingHeadphoneWarning) {
-            Alert(
-                title: Text("Headphones Recommended"),
-                message: Text("For accurate calibration and testing, please use headphones. Do you want to continue without headphones?"),
-                primaryButton: .default(Text("Continue Anyway")) {
-                    currentStep += 1
-                },
-                secondaryButton: .cancel(Text("I'll Get Headphones"))
-            )
+        .alert(item: $activeAlert) { alertType in
+            switch alertType {
+            case .headphoneWarning:
+                return Alert(
+                    title: Text("Headphones Recommended"),
+                    message: Text("For accurate calibration and testing, please use headphones. Do you want to continue without headphones?"),
+                    primaryButton: .default(Text("Continue Anyway")) {
+                        currentStep += 1
+                    },
+                    secondaryButton: .cancel(Text("I'll Get Headphones"))
+                )
+            case .completionSuccess:
+                return Alert(
+                    title: Text("Calibration Successful"),
+                    message: Text("Your device has been successfully calibrated for accurate hearing tests."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
         }
     }
     
@@ -551,7 +577,7 @@ struct CalibrationView: View {
             // Headphone Check -> Level Adjustment
             // Check if headphones are connected, warn if not
             if calibrationService.headphoneModel == "No headphones detected" {
-                showingHeadphoneWarning = true
+                activeAlert = .headphoneWarning
             } else {
                 currentStep += 1
             }
@@ -568,14 +594,10 @@ struct CalibrationView: View {
             
         case 4:
             // Completion -> Finish
-            showingCompletionAlert = true
+            activeAlert = .completionSuccess
             
-            // Navigate back or dismiss
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                // Return to previous screen
-                // This would typically use a navigation binding or dismiss action
-                // For now, we'll just show an alert
-            }
+            // The navigation action would typically happen after the alert is dismissed
+            // but we're not adding that code here since you didn't specify navigation behavior
             
         default:
             break
