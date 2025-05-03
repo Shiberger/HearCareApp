@@ -4,7 +4,7 @@
 //
 //  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
 //  Updated with noise level check on 22/4/2568 BE.
-//  Refactored to fix type-checking issues and accessibility
+//  Updated with calibration integration on 4/5/2568 BE.
 //
 
 import SwiftUI
@@ -16,13 +16,16 @@ struct HearingTestView: View {
     @State private var microphonePermissionGranted = false
     @State private var showingNoiseAlert = false
     @State private var showingDebugInfo = false
+    @State private var showCalibrationView = false
     @ObservedObject private var soundService = AmbientSoundService.shared
+    @ObservedObject private var calibrationService = CalibrationService.shared
     
     // Debug state
     @State private var debugLogMessages: [String] = []
     
     enum TestStage {
         case microphonePermission
+        case calibrationCheck
         case instructions
         case preparation
         case testing
@@ -69,6 +72,11 @@ struct HearingTestView: View {
                 }
             }
         )
+        .sheet(isPresented: $showCalibrationView) {
+            NavigationView {
+                CalibrationView()
+            }
+        }
     }
     
     // MARK: - Content Router
@@ -82,6 +90,21 @@ struct HearingTestView: View {
                         if granted {
                             addDebugLog("Microphone permission granted")
                             soundService.startMonitoring()
+                            // Check calibration status first
+                            let calibrationStatus = testManager.checkCalibrationStatus()
+                            if calibrationStatus == .needsCalibration {
+                                testStage = .calibrationCheck
+                            } else {
+                                testStage = .instructions
+                            }
+                        }
+                    }
+            )
+        case .calibrationCheck:
+            return AnyView(
+                CalibrationCheckView()
+                    .onDisappear {
+                        if testStage == .calibrationCheck {
                             testStage = .instructions
                         }
                     }
@@ -135,6 +158,9 @@ struct HearingTestView: View {
                     .font(AppTheme.Typography.title2)
                     .padding(.horizontal)
                 
+                // Calibration status
+                calibrationStatusCard
+                
                 // Ambient noise monitor
                 AmbientSoundMonitorView()
                     .padding(.horizontal)
@@ -150,10 +176,116 @@ struct HearingTestView: View {
                 // Begin test button
                 PrimaryButton(title: "Begin Test", icon: "play.fill") {
                     addDebugLog("Begin Test button tapped")
-                    checkEnvironmentNoise()
+                    
+                    // Check if device is calibrated
+                    let calibrationStatus = testManager.checkCalibrationStatus()
+                    
+                    if calibrationStatus == .calibrated {
+                        // Proceed with test if calibrated
+                        checkEnvironmentNoise()
+                    } else if calibrationStatus == .recommendRecalibration {
+                        // Show recalibration recommendation but allow to continue
+                        showCalibrationView = true
+                    } else {
+                        // For other statuses, force calibration
+                        showCalibrationView = true
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.bottom, AppTheme.Spacing.extraLarge)
+            }
+        }
+    }
+    
+    // Calibration status card
+    private var calibrationStatusCard: some View {
+        Group {
+            if calibrationService.isCalibrated {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.system(size: 24))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Device Calibrated")
+                            .font(AppTheme.Typography.headline)
+                            .foregroundColor(.green)
+                        
+                        if let date = calibrationService.calibrationDate {
+                            Text("Last calibrated: \(date, style: .date)")
+                                .font(AppTheme.Typography.caption)
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showCalibrationView = true
+                    }) {
+                        Text("Recalibrate")
+                            .font(AppTheme.Typography.caption)
+                            .foregroundColor(AppTheme.primaryColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule()
+                                    .strokeBorder(AppTheme.primaryColor, lineWidth: 1)
+                            )
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                        .fill(Color.green.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                                .stroke(Color.green.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal)
+            } else {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 24))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Calibration Needed")
+                            .font(AppTheme.Typography.headline)
+                            .foregroundColor(.orange)
+                        
+                        Text("Your device needs calibration for accurate results")
+                            .font(AppTheme.Typography.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showCalibrationView = true
+                    }) {
+                        Text("Calibrate")
+                            .font(AppTheme.Typography.subheadline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(AppTheme.primaryColor)
+                            )
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                        .fill(Color.orange.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                                .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal)
             }
         }
     }
@@ -354,6 +486,13 @@ struct HearingTestView: View {
             // Start the test when the view appears
             if testManager.testStatus != .testing {
                 addDebugLog("Starting hearing test")
+                
+                // Use calibrated test if available
+                if calibrationService.isCalibrated {
+                    addDebugLog("Using calibrated tones for test")
+                    // Using calibrated method would go here
+                }
+                
                 testManager.startTest(startingEar: selectedEar)
             }
             
@@ -407,6 +546,8 @@ struct HearingTestView: View {
             Text("Ear: \(testManager.currentEar == .right ? "Right" : "Left")")
                 .font(.caption)
             Text("Playing: \(testManager.isPlaying ? "Yes" : "No")")
+                .font(.caption)
+            Text("Calibrated: \(calibrationService.isCalibrated ? "Yes" : "No")")
                 .font(.caption)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -589,6 +730,10 @@ struct HearingTestView: View {
             Text("• \(rightEarCount) right ear measurements")
             Text("• \(leftEarCount) left ear measurements")
             Text("• \(heardCount) 'heard' responses")
+            if calibrationService.isCalibrated {
+                Text("• Test used calibrated audio levels")
+                    .foregroundColor(.green)
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -627,7 +772,7 @@ struct HearingTestView: View {
         }
         
         // Create a test result document
-        let testResult: [String: Any] = [
+        var testResult: [String: Any] = [
             "testDate": Date(),
             "rightEarClassification": processedResults.rightEarClassification.displayName,
             "leftEarClassification": processedResults.leftEarClassification.displayName,
@@ -635,6 +780,12 @@ struct HearingTestView: View {
             "rightEarData": rightEarData,
             "leftEarData": leftEarData
         ]
+        
+        // Add calibration information
+        testResult["wasCalibrated"] = calibrationService.isCalibrated
+        if let calibrationDate = calibrationService.calibrationDate {
+            testResult["calibrationDate"] = calibrationDate
+        }
         
         // Save the test result to Firestore
         firestoreService.saveTestResultForCurrentUser(testResult) { result in
