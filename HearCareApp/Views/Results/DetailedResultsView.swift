@@ -1,20 +1,30 @@
-//
-//  DetailedResultsView.swift
-//  HearCareApp
-//
-//  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
-//
-
 import SwiftUI
+
+// MARK: - Pastel Colors
+private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
+private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
+private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
+private let pastelRed = Color(red: 255/255, green: 180/255, blue: 180/255)
+private let pastelOrange = Color(red: 255/255, green: 210/255, blue: 170/255)
 
 struct DetailedResultsView: View {
     @StateObject private var viewModel: ResultsViewModel
-    @State private var selectedTab = 0
+    @State private var selectedTab = 0 // เริ่มต้นที่ Summary แทน
     @State private var isSaving = false
-    @State private var showingSaveConfirmation = false // For success popup
-    @State private var resultsSaved = false // Track if already saved
+    @State private var showingSaveConfirmation = false
+    @State private var resultsSaved = false
     
-    private let tabs = ["Audiogram", "Summary", "Recommendations"]
+    // เปลี่ยนลำดับแท็บให้ Summary อยู่ก่อน
+    private let tabs = ["Summary", "Audiogram", "Suggestion"]
+    
+    // เกรเดียนต์พื้นหลัง
+    private var backgroundGradient: LinearGradient {
+        LinearGradient(
+            gradient: Gradient(colors: [pastelBlue.opacity(0.6), pastelGreen.opacity(0.4)]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
     
     // Original initializer for new test results
     init(testResults: [AudioService.TestResponse]) {
@@ -34,83 +44,191 @@ struct DetailedResultsView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom Tab View
-            HStack {
-                ForEach(0..<tabs.count, id: \.self) { index in
-                    Button(action: {
-                        selectedTab = index
-                    }) {
-                        VStack(spacing: 8) {
-                            Text(tabs[index])
-                                .font(.subheadline)
-                                .fontWeight(selectedTab == index ? .semibold : .regular)
-                                .foregroundColor(selectedTab == index ? .primary : .secondary)
-                            
-                            ZStack {
-                                Rectangle()
-                                    .fill(Color.clear)
-                                    .frame(height: 3)
+        ZStack {
+            // พื้นหลังเกรเดียนต์
+            backgroundGradient
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // แถบแท็บที่ปรับปรุงแล้ว
+                HStack {
+                    ForEach(0..<tabs.count, id: \.self) { index in
+                        Button(action: {
+                            withAnimation {
+                                selectedTab = index
+                            }
+                        }) {
+                            VStack(spacing: 8) {
+                                Text(tabs[index])
+                                    .font(.system(size: 15, weight: selectedTab == index ? .semibold : .regular))
+                                    .foregroundColor(selectedTab == index ? pastelBlue : Color.gray)
                                 
-                                if selectedTab == index {
+                                ZStack {
                                     Rectangle()
-                                        .fill(Color.blue)
+                                        .fill(Color.clear)
                                         .frame(height: 3)
-                                        .matchedGeometryEffect(id: "TAB", in: namespace)
+                                    
+                                    if selectedTab == index {
+                                        Rectangle()
+                                            .fill(pastelBlue)
+                                            .frame(height: 3)
+                                            .matchedGeometryEffect(id: "TAB", in: namespace)
+                                    }
                                 }
                             }
                         }
+                        .buttonStyle(PlainButtonStyle())
+                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .frame(maxWidth: .infinity)
                 }
-            }
-            .padding(.horizontal)
-            
-            // Tab Content
-            TabView(selection: $selectedTab) {
-                audiogramView
-                    .tag(0)
+                .padding(.horizontal)
+                .padding(.top, 10)
+                .background(Color.white.opacity(0.9))
                 
-                summaryView
-                    .tag(1)
-                
-                recommendationsView
-                    .tag(2)
+                // เนื้อหาแท็บ
+                TabView(selection: $selectedTab) {
+                    // เปลี่ยนลำดับให้ตรงกับแท็บที่แสดง (Summary ก่อน)
+                    summaryView
+                        .tag(0)
+                    
+                    audiogramView
+                        .tag(1)
+                    
+                    recommendationsView
+                        .tag(2)
+                }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         }
-        .navigationTitle("Test Results")
+        .navigationTitle("ผลการทดสอบโดยละเอียด")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     viewModel.shareResults()
                 }) {
-                    Image(systemName: "square.and.arrow.up")
+                    HStack(spacing: 5) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("แชร์")
+                            .font(.system(size: 14))
+                    }
+                    .foregroundColor(pastelBlue)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(pastelBlue, lineWidth: 1)
+                    )
                 }
             }
         }
-        .background(Color("BackgroundColor").ignoresSafeArea())
-        // Add alert for save confirmation
+        // แสดงการแจ้งเตือนเมื่อบันทึกสำเร็จ
         .alert(isPresented: $showingSaveConfirmation) {
             Alert(
-                title: Text("Success"),
-                message: Text("Test results saved successfully"),
-                dismissButton: .default(Text("OK"))
+                title: Text("สำเร็จ"),
+                message: Text("บันทึกผลการทดสอบเรียบร้อยแล้ว"),
+                dismissButton: .default(Text("ตกลง"))
             )
+        }
+        .onAppear {
+            // ตรวจสอบว่าเป็นผลจากประวัติหรือไม่
+            if viewModel.isHistoricalResult {
+                resultsSaved = true
+            }
         }
     }
     
     @Namespace private var namespace
     
+    // MARK: - Summary View (อยู่ก่อนเป็นอันดับแรก)
+    private var summaryView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // ผลสรุปการทดสอบ
+                Text("ผลสรุปการทดสอบ")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                    .padding(.horizontal)
+                    .padding(.top, 15)
+                
+                // การ์ดแสดงผลการจำแนก
+                VStack(spacing: 16) {
+                    // การ์ดหูขวา
+                    classificationCard(
+                        title: "หูขวา",
+                        classification: viewModel.rightEarClassification,
+                        color: pastelRed
+                    )
+                    
+                    // การ์ดหูซ้าย
+                    classificationCard(
+                        title: "หูซ้าย",
+                        classification: viewModel.leftEarClassification,
+                        color: pastelBlue
+                    )
+                }
+                .padding(.horizontal)
+                
+                // ผลแบ่งตามความถี่
+                Text("ผลตามความถี่")
+                    .font(.headline)
+                    .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                
+                // ตารางแสดงผลความถี่
+                frequencyBreakdownGrid
+                    .padding(.horizontal)
+                
+                // ข้อมูลการทดสอบ
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("ข้อมูลการทดสอบ")
+                        .font(.headline)
+                        .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                    
+                    HStack {
+                        Text("วันที่ทดสอบ:")
+                            .foregroundColor(Color(red: 100/255, green: 100/255, blue: 100/255))
+                        Spacer()
+                        Text(viewModel.testDate, style: .date)
+                            .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                    }
+                    
+                    HStack {
+                        Text("ระยะเวลาทดสอบ:")
+                            .foregroundColor(Color(red: 100/255, green: 100/255, blue: 100/255))
+                        Spacer()
+                        Text(viewModel.testDuration)
+                            .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.9))
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                )
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            .padding(.bottom, 20)
+            saveResultsButton
+            .padding(.bottom, 30)
+        }
+
+    }
+    
+    // MARK: - Audiogram View
     private var audiogramView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Your Hearing Audiogram")
+                Text("กราฟออดิโอแกรมการได้ยิน")
                     .font(.title3)
                     .fontWeight(.semibold)
+                    .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
                     .padding(.horizontal)
+                    .padding(.top, 15)
                 
                 // OPTION 1: Use PlotlyAudiogramView (WebView-based)
                 PlotlyAudiogramView(
@@ -118,140 +236,107 @@ struct DetailedResultsView: View {
                     leftEarData: viewModel.leftEarDataPoints
                 )
                 .frame(height: 400)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.9))
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                )
                 .padding(.horizontal)
                 
-                // OPTION 2: Use SwiftUI Charts-based AudiogramChartView
-                // AudiogramChartView(
-                //    rightEarData: viewModel.rightEarDataPoints,
-                //    leftEarData: viewModel.leftEarDataPoints
-                // )
-                // .padding(.horizontal)
-                
-                Text("About Your Audiogram")
-                    .font(.headline)
-                    .padding(.horizontal)
-                
-                Text("An audiogram shows your hearing ability across different frequencies. Lower values on the chart indicate better hearing (displayed at the top). The chart shows results for both ears, helping identify patterns in hearing loss.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                
-                // Modified Save Results Button
-                Button(action: {
-                    // Prevent saving if already saved or currently saving
-                    guard !resultsSaved && !isSaving else { return }
-                    
-                    // Indicate saving in progress
-                    isSaving = true
-                    
-                    // Save results
-                    viewModel.saveResults()
-                    
-                    // Mark as saved
-                    resultsSaved = true
-                    
-                    // Show confirmation popup
-                    showingSaveConfirmation = true
-                    
-                    // Reset saving state after a delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        isSaving = false
-                    }
-                }) {
-                    HStack {
-                        if isSaving {
-                            // Show spinner while saving
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .padding(.trailing, 5)
-                        }
-                        
-                        Text(resultsSaved ? "Results Saved" : "Save Results")
-                            .fontWeight(.medium)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(resultsSaved ? Color.gray : Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .opacity(isSaving ? 0.7 : 1.0) // Visual feedback
-                }
-                .disabled(resultsSaved || isSaving)
-                .padding()
-            }
-        }
-        .onAppear {
-            // Check if this is a historical result (already saved)
-            if viewModel.isHistoricalResult {
-                resultsSaved = true
-            }
-        }
-    }
-    
-    private var summaryView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Results Summary")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal)
-                
-                // Classification Cards
-                VStack(spacing: 16) {
-                    classificationCard(
-                        title: "Right Ear",
-                        classification: viewModel.rightEarClassification,
-                        color: .blue
-                    )
-                    
-                    classificationCard(
-                        title: "Left Ear",
-                        classification: viewModel.leftEarClassification,
-                        color: .red
-                    )
-                }
-                .padding(.horizontal)
-                
-                // Frequency Breakdown
-                Text("Frequency Breakdown")
-                    .font(.headline)
-                    .padding(.horizontal)
-                    .padding(.top)
-                
-                frequencyBreakdownGrid
-                    .padding(.horizontal)
-                
-                // Test Information
+                // คำอธิบายออดิโอแกรม
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Test Information")
+                    Text("เกี่ยวกับออดิโอแกรม")
                         .font(.headline)
+                        .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
                     
-                    HStack {
-                        Text("Test Date:")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(viewModel.testDate, style: .date)
-                    }
-                    
-                    HStack {
-                        Text("Test Duration:")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(viewModel.testDuration)
-                    }
+                    Text("ออดิโอแกรมแสดงความสามารถในการได้ยินของคุณตามความถี่ต่างๆ ค่าที่ต่ำบนกราฟ (แสดงที่ด้านบน) บ่งบอกถึงการได้ยินที่ดีกว่า กราฟแสดงผลของหูทั้งสองข้าง ช่วยในการระบุรูปแบบการสูญเสียการได้ยิน")
+                        .font(.subheadline)
+                        .foregroundColor(Color(red: 100/255, green: 100/255, blue: 100/255))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemBackground))
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                        .fill(Color.white.opacity(0.9))
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                 )
                 .padding(.horizontal)
+                
+                // คำอธิบายสัญลักษณ์
+                HStack(spacing: 20) {
+                    legendItem(color: pastelRed, text: "หูขวา")
+                    legendItem(color: pastelBlue, text: "หูซ้าย")
+                    Spacer()
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.9))
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                )
+                .padding(.horizontal)
+                
+                // ปุ่มบันทึกผล
+//                saveResultsButton
+//                    .padding()
             }
             .padding(.bottom, 30)
         }
     }
     
+    // MARK: - Recommendations View
+    private var recommendationsView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("คำแนะนำที่เหมาะสม")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                    .padding(.horizontal)
+                    .padding(.top, 15)
+                
+                // คำแนะนำ
+                ForEach(viewModel.recommendations.indices, id: \.self) { index in
+                    recommendationCard(
+                        number: index + 1,
+                        recommendation: viewModel.recommendations[index]
+                    )
+                }
+                
+                // ปุ่มนัดหมาย
+                Button(action: {
+                    viewModel.scheduleFollowUp()
+                }) {
+                    HStack {
+                        Image(systemName: "calendar.badge.plus")
+                            .font(.system(size: 16))
+                        
+                        Text("นัดหมายผู้เชี่ยวชาญ")
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(pastelBlue)
+                            .shadow(color: pastelBlue.opacity(0.5), radius: 5, x: 0, y: 3)
+                    )
+                }
+                .padding()
+                
+                // ข้อความปฏิเสธความรับผิดชอบ
+                disclaimerBox
+                    .padding(.horizontal)
+                    .padding(.bottom, 20)
+            }
+            .padding(.bottom, 30)
+        }
+    }
+    
+    // MARK: - UI Components
+    
+    // การ์ดการจำแนกการได้ยิน
     private func classificationCard(title: String, classification: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -261,6 +346,7 @@ struct DetailedResultsView: View {
                 
                 Text(title)
                     .font(.headline)
+                    .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
                 
                 Spacer()
             }
@@ -268,131 +354,102 @@ struct DetailedResultsView: View {
             Text(classification)
                 .font(.title3)
                 .fontWeight(.bold)
+                .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
             
             Text(viewModel.descriptionFor(classification: classification))
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(Color(red: 100/255, green: 100/255, blue: 100/255))
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                .fill(Color.white.opacity(0.9))
+                .shadow(color: color.opacity(0.3), radius: 5, x: 0, y: 2)
         )
     }
     
+    // ตารางแสดงผลการทดสอบรายความถี่
     private var frequencyBreakdownGrid: some View {
         VStack(spacing: 0) {
-            // Header row
+            // ส่วนหัวตาราง
             HStack {
-                Text("Frequency")
+                Text("ความถี่")
                     .font(.caption)
                     .fontWeight(.medium)
                     .frame(width: 80, alignment: .leading)
                 
-                Text("Right Ear")
+                Text("หูขวา")
                     .font(.caption)
                     .fontWeight(.medium)
                     .frame(maxWidth: .infinity)
                 
-                Text("Left Ear")
+                Text("หูซ้าย")
                     .font(.caption)
                     .fontWeight(.medium)
                     .frame(maxWidth: .infinity)
             }
-            .padding(.vertical, 8)
-            .background(Color(.systemGray6))
+            .padding(.vertical, 10)
+            .padding(.horizontal, 8)
+            .background(pastelBlue.opacity(0.15))
             
-            // Frequency rows
+            // แถวข้อมูลความถี่
             ForEach(viewModel.frequencyBreakdown, id: \.frequency) { item in
                 HStack {
                     Text(item.frequencyLabel)
                         .font(.caption)
+                        .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
                         .frame(width: 80, alignment: .leading)
                     
-                    Text("\(Int(item.rightLevel)) dB")
-                        .font(.caption)
-                        .foregroundColor(colorFor(level: item.rightLevel))
-                        .frame(maxWidth: .infinity)
+                    HStack {
+                        Text("\(Int(item.rightLevel)) dB")
+                            .font(.caption)
+                            .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                        
+                        Circle()
+                            .fill(colorFor(level: item.rightLevel))
+                            .frame(width: 8, height: 8)
+                    }
+                    .frame(maxWidth: .infinity)
                     
-                    Text("\(Int(item.leftLevel)) dB")
-                        .font(.caption)
-                        .foregroundColor(colorFor(level: item.leftLevel))
-                        .frame(maxWidth: .infinity)
+                    HStack {
+                        Text("\(Int(item.leftLevel)) dB")
+                            .font(.caption)
+                            .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                        
+                        Circle()
+                            .fill(colorFor(level: item.leftLevel))
+                            .frame(width: 8, height: 8)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 8)
                 .background(
                     Rectangle()
-                        .fill(Color.white.opacity(0.5))
+                        .fill(item.frequency.truncatingRemainder(dividingBy: 2) == 0 ?
+                              Color.white.opacity(0.7) : Color.white.opacity(0.9))
                 )
                 
-                Divider()
+                if item.frequency != viewModel.frequencyBreakdown.last?.frequency {
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                }
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.gray.opacity(0.2), lineWidth: 1)
         )
     }
     
-    private func colorFor(level: Float) -> Color {
-        switch level {
-        case 0..<25:
-            return .green
-        case 25..<40:
-            return .yellow
-        case 40..<60:
-            return .orange
-        case 60..<80:
-            return .red
-        default:
-            return .purple
-        }
-    }
-    
-    private var recommendationsView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Recommended Actions")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal)
-                
-                ForEach(viewModel.recommendations.indices, id: \.self) { index in
-                    recommendationCard(
-                        number: index + 1,
-                        recommendation: viewModel.recommendations[index]
-                    )
-                }
-                
-                Button(action: {
-                    viewModel.scheduleFollowUp()
-                }) {
-                    Text("Schedule Follow-Up")
-                        .fontWeight(.medium)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                }
-                .padding()
-                
-                Text("Disclaimer: This app provides a screening tool and is not a substitute for professional medical advice. Please consult an audiologist for a comprehensive evaluation.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-            }
-            .padding(.bottom, 30)
-        }
-    }
-    
+    // การ์ดคำแนะนำ
     private func recommendationCard(number: Int, recommendation: String) -> some View {
         HStack(alignment: .top, spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Color.blue)
+                    .fill(pastelGreen)
                     .frame(width: 28, height: 28)
                 
                 Text("\(number)")
@@ -403,15 +460,122 @@ struct DetailedResultsView: View {
             
             Text(recommendation)
                 .font(.body)
+                .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+                .fixedSize(horizontal: false, vertical: true)
             
             Spacer()
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                .fill(Color.white.opacity(0.9))
+                .shadow(color: pastelGreen.opacity(0.3), radius: 5, x: 0, y: 2)
         )
         .padding(.horizontal)
+    }
+    
+    // ปุ่มบันทึกผล
+    private var saveResultsButton: some View {
+        Button(action: {
+            // ป้องกันการบันทึกซ้ำหรือขณะกำลังบันทึก
+            guard !resultsSaved && !isSaving else { return }
+            
+            // แสดงสถานะกำลังบันทึก
+            isSaving = true
+            
+            // บันทึกผล
+            viewModel.saveResults()
+            
+            // กำหนดว่าบันทึกแล้ว
+            resultsSaved = true
+            
+            // แสดงการแจ้งเตือนยืนยันการบันทึก
+            showingSaveConfirmation = true
+            
+            // รีเซ็ตสถานะการบันทึกหลังจากหน่วงเวลาสักครู่
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isSaving = false
+            }
+        }) {
+            HStack {
+                if isSaving {
+                    // แสดงตัวหมุนขณะกำลังบันทึก
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .padding(.trailing, 10)
+                }
+                
+                Text(resultsSaved ? "บันทึกผลแล้ว" : "บันทึกผลการทดสอบ")
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(
+                RoundedRectangle(cornerRadius: 15)
+                    .fill(resultsSaved ? Color.gray : pastelBlue)
+                    .shadow(color: pastelBlue.opacity(0.5), radius: 5, x: 0, y: 3)
+            )
+            .opacity(isSaving ? 0.7 : 1.0) // แสดงผลเชิงภาพขณะกำลังบันทึก
+        }
+        .disabled(resultsSaved || isSaving)
+        .padding(.horizontal)
+    }
+    
+    // คำอธิบายสัญลักษณ์
+    private func legendItem(color: Color, text: String) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 12, height: 12)
+            
+            Text(text)
+                .font(.caption)
+                .foregroundColor(Color(red: 80/255, green: 80/255, blue: 80/255))
+        }
+    }
+    
+    // ข้อความปฏิเสธความรับผิดชอบ
+    private var disclaimerBox: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(pastelYellow)
+                
+                Text("ข้อควรทราบ")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
+            }
+            
+            Text("แอปพลิเคชันนี้เป็นเพียงเครื่องมือคัดกรองเบื้องต้นและไม่ใช่สิ่งทดแทนคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญ โปรดปรึกษานักแก้ไขการได้ยินเพื่อรับการประเมินที่ครอบคลุม")
+                .font(.caption)
+                .foregroundColor(Color(red: 80/255, green: 80/255, blue: 80/255))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(pastelYellow.opacity(0.2))
+                .shadow(color: pastelYellow.opacity(0.2), radius: 3, x: 0, y: 2)
+        )
+    }
+    
+    // MARK: - Helper Functions
+    
+    // สีตามระดับการได้ยิน
+    private func colorFor(level: Float) -> Color {
+        switch level {
+        case 0..<25:
+            return pastelGreen
+        case 25..<40:
+            return pastelYellow
+        case 40..<60:
+            return pastelOrange
+        case 60..<80:
+            return pastelRed
+        default:
+            return Color.purple
+        }
     }
 }

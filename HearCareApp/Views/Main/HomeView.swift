@@ -1,10 +1,4 @@
-//
-//  HomeView.swift
-//  HearCareApp
-//
-//  Created by Hannarong Kaewkiriya on 3/3/2568 BE.
-//
-//
+// Home 2
 
 import SwiftUI
 
@@ -18,6 +12,28 @@ struct HomeView: View {
     @State private var isLoadingLastTest = false
     @State private var lastTestError: String?
     @State private var navigateToLastTestDetails = false
+    
+    // Color palette - Pastel
+    private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
+    private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
+    private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
+    private let pastelPurple = Color(red: 0.88, green: 0.83, blue: 0.98)
+//    private let gradientBackground = LinearGradient(
+//        gradient: Gradient(colors: [
+//            Color(red: 0.89, green: 0.94, blue: 0.99),
+//            Color(red: 0.95, green: 0.98, blue: 0.95)
+//        ]),
+//        startPoint: .topLeading,
+//        endPoint: .bottomTrailing
+//    )
+    
+    private var gradientBackground: LinearGradient {
+        LinearGradient(
+            gradient: Gradient(colors: [pastelBlue.opacity(0.6), pastelGreen.opacity(0.5)]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
     
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -70,38 +86,52 @@ struct HomeView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
-                    // User greeting
-                    VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                        Text("Hello, \(authService.user?.displayName?.components(separatedBy: " ").first ?? "there")!")
-                            .font(AppTheme.Typography.title2)
+                    // User greeting with enhanced styling
+                    ZStack {
+                        RoundedRectangle(cornerRadius: AppTheme.Radius.large)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [pastelBlue, pastelBlue.opacity(0.6)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
                         
-                        Text("Track and monitor your hearing health")
-                            .font(AppTheme.Typography.callout)
-                            .foregroundColor(AppTheme.textSecondary)
+                        HStack {
+                            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                                Text("Hello, \(authService.user?.displayName?.components(separatedBy: " ").first ?? "there")!")
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(Color(red: 0.2, green: 0.3, blue: 0.4))
+                                
+                                Text("Track and monitor your hearing health")
+                                    .font(AppTheme.Typography.callout)
+                                    .foregroundColor(Color(red: 0.3, green: 0.4, blue: 0.5))
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "ear.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(Color(red: 0.4, green: 0.5, blue: 0.6).opacity(0.7))
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 24)
                     }
                     .padding(.horizontal)
                     
-                    // Quick actions
-                    InfoCard(title: "Quick Actions", icon: "bolt.fill") {
+                    // Quick actions with updated styling
+                    enhancedInfoCard(
+                        title: "Quick Actions",
+                        icon: "bolt.fill",
+                        color: pastelGreen
+                    ) {
                         VStack(spacing: AppTheme.Spacing.medium) {
                             NavigationLink(destination: HearingTestView()) {
-                                HStack {
-                                    Image(systemName: "ear.fill")
-                                        .foregroundColor(AppTheme.primaryColor)
-                                        .frame(width: 24, height: 24)
-                                    
-                                    Text("Take Hearing Test")
-                                        .font(AppTheme.Typography.headline)
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(AppTheme.textSecondary)
-                                }
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: AppTheme.Radius.small)
-                                        .fill(Color.white)
+                                enhancedActionButton(
+                                    icon: "ear.fill",
+                                    title: "Take Hearing Test",
+                                    color: pastelBlue
                                 )
                             }
                             
@@ -114,61 +144,40 @@ struct HomeView: View {
                                     fetchLastTest()
                                 }
                             }) {
-                                HStack {
-                                    Image(systemName: "doc.text.fill")
-                                        .foregroundColor(AppTheme.primaryColor)
-                                        .frame(width: 24, height: 24)
-                                    
-                                    Text("View Last Test")
-                                        .font(AppTheme.Typography.headline)
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(AppTheme.textSecondary)
-                                }
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: AppTheme.Radius.small)
-                                        .fill(Color.white)
+                                enhancedActionButton(
+                                    icon: "doc.text.fill",
+                                    title: "View Last Test",
+                                    color: pastelYellow
                                 )
                             }
                             
                             // Debug Button
-                            Button(action: {
-                                showingDebugTools = true
-                            }) {
-                                HStack {
-                                    Image(systemName: "hammer.fill")
-                                        .foregroundColor(AppTheme.primaryColor)
-                                        .frame(width: 24, height: 24)
-                                    
-                                    Text("Debug Tools")
-                                        .font(AppTheme.Typography.headline)
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(AppTheme.textSecondary)
+                            if isDevelopmentMode() {
+                                Button(action: {
+                                    showingDebugTools = true
+                                }) {
+                                    enhancedActionButton(
+                                        icon: "hammer.fill",
+                                        title: "Debug Tools",
+                                        color: pastelPurple
+                                    )
                                 }
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: AppTheme.Radius.small)
-                                        .fill(Color.white)
-                                )
                             }
-                            .opacity(isDevelopmentMode() ? 1.0 : 0.0)
-                            .disabled(!isDevelopmentMode())
                         }
                     }
                     
-                    // Hearing summary
-                    InfoCard(title: "Hearing Summary", icon: "chart.bar.fill") {
+                    // Hearing summary with pastel colors
+                    enhancedInfoCard(
+                        title: "Hearing Summary",
+                        icon: "chart.bar.fill",
+                        color: pastelYellow
+                    ) {
                         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                             if isLoadingLastTest {
                                 HStack {
                                     Spacer()
                                     ProgressView()
+                                        .scaleEffect(1.3)
                                         .padding()
                                     Spacer()
                                 }
@@ -178,107 +187,160 @@ struct HomeView: View {
                                     .font(AppTheme.Typography.subheadline)
                                     .foregroundColor(AppTheme.textSecondary)
                                 
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text("Right Ear")
-                                            .font(AppTheme.Typography.caption)
-                                            .foregroundColor(AppTheme.textSecondary)
-                                        
-                                        Text(lastTest.rightEarClassification)
-                                            .font(AppTheme.Typography.headline)
-                                            .foregroundColor(colorForClassification(lastTest.rightEarClassification))
-                                    }
+                                HStack(spacing: 15) {
+                                    // Left Ear Card
+                                    earStatusCard(
+                                        ear: "Left Ear",
+                                        classification: lastTest.leftEarClassification,
+                                        icon: "ear",
+                                        color: .blue
+                                    )
                                     
-                                    Spacer()
-                                    
-                                    VStack(alignment: .leading) {
-                                        Text("Left Ear")
-                                            .font(AppTheme.Typography.caption)
-                                            .foregroundColor(AppTheme.textSecondary)
-                                        
-                                        Text(lastTest.leftEarClassification)
-                                            .font(AppTheme.Typography.headline)
-                                            .foregroundColor(colorForClassification(lastTest.leftEarClassification))
-                                    }
+                                    // Right Ear Card
+                                    earStatusCard(
+                                        ear: "Right Ear",
+                                        classification: lastTest.rightEarClassification,
+                                        icon: "ear",
+                                        color: .red
+                                    )
                                 }
                                 
-                                // Mini audiogram preview
+                                // Mini audiogram preview with enhanced styling
                                 ZStack {
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.1))
-                                        .frame(height: 100)
-                                        .cornerRadius(AppTheme.Radius.small)
+                                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                                        .fill(Color.white)
+                                        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                                     
+                                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                        
                                     // Mini audiogram visualization
                                     simpleAudiogramPreview
+                                        .padding()
                                 }
+                                .frame(height: 120)
                                 .onTapGesture {
                                     // Navigate to detailed audiogram
                                     navigateToLastTestDetails = true
                                 }
                                 
-                                Text("Last test: \(dateFormatter.string(from: lastTest.testDate))")
-                                    .font(AppTheme.Typography.caption)
-                                    .foregroundColor(AppTheme.textSecondary)
-                            } else {
-                                // No test results available
-                                Text("No test results available yet.")
-                                    .font(AppTheme.Typography.subheadline)
-                                    .foregroundColor(AppTheme.textSecondary)
-                                    .padding()
-                                
-                                Button(action: {
-                                    // Navigate to take a test
-                                    selectedTab = 1
-                                }) {
-                                    Text("Take Your First Test")
-                                        .font(AppTheme.Typography.subheadline)
+                                HStack {
+                                    Text("Last test: \(dateFormatter.string(from: lastTest.testDate))")
+                                        .font(AppTheme.Typography.caption)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    
+                                    Spacer()
+                                    
+                                    Text("Tap chart to view details")
+                                        .font(AppTheme.Typography.caption)
                                         .foregroundColor(AppTheme.primaryColor)
                                 }
+                            } else {
+                                // No test results available
+                                VStack(spacing: 20) {
+                                    Image(systemName: "waveform.path.badge.minus")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(Color.gray.opacity(0.6))
+                                        .padding()
+                                    
+                                    Text("No test results available yet.")
+                                        .font(AppTheme.Typography.subheadline)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    
+                                    Button(action: {
+                                        // Navigate to take a test
+                                        selectedTab = 1
+                                    }) {
+                                        Text("Take Your First Test")
+                                            .font(AppTheme.Typography.subheadline.bold())
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 20)
+                                            .padding(.vertical, 12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 20)
+                                                    .fill(AppTheme.primaryColor)
+                                            )
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
                             }
                             
                             Button(action: {
                                 // Schedule professional test
                             }) {
-                                Text("Schedule Professional Test")
-                                    .font(AppTheme.Typography.subheadline)
-                                    .foregroundColor(AppTheme.primaryColor)
+                                HStack {
+                                    Spacer()
+                                    Image(systemName: "calendar.badge.plus")
+                                        .font(.system(size: 14))
+                                    Text("Schedule Professional Test")
+                                        .font(AppTheme.Typography.subheadline.bold())
+                                    Spacer()
+                                }
+                                .foregroundColor(AppTheme.primaryColor)
+                                .padding(.vertical, 12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                                        .stroke(AppTheme.primaryColor, lineWidth: 1.5)
+                                )
                             }
                             .padding(.top, AppTheme.Spacing.small)
                         }
                     }
                     
-                    // Tips and education
-                    InfoCard(title: "Hearing Health Tips", icon: "lightbulb.fill") {
+                    // Tips and education with card styling
+                    enhancedInfoCard(
+                        title: "Hearing Health Tips",
+                        icon: "lightbulb.fill",
+                        color: pastelBlue
+                    ) {
                         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                            tipRow(
+                            enhancedTipRow(
                                 icon: "volume.3.fill",
                                 title: "Safe Listening",
-                                description: "Keep volume below 60% when using headphones"
+                                description: "Keep volume below 60% when using headphones",
+                                color: pastelBlue
                             )
                             
                             Divider()
+                                .padding(.horizontal, 5)
                             
-                            tipRow(
+                            enhancedTipRow(
                                 icon: "ear.and.waveform",
                                 title: "Noise Protection",
-                                description: "Use earplugs in loud environments"
+                                description: "Use earplugs in loud environments",
+                                color: pastelGreen
                             )
                             
                             Divider()
+                                .padding(.horizontal, 5)
                             
-                            tipRow(
+                            enhancedTipRow(
                                 icon: "clock.fill",
                                 title: "Regular Testing",
-                                description: "Test your hearing every 6-12 months"
+                                description: "Test your hearing every 6-12 months",
+                                color: pastelYellow
                             )
                             
                             Button(action: {
                                 // View all tips
                             }) {
-                                Text("View All Tips")
-                                    .font(AppTheme.Typography.subheadline)
-                                    .foregroundColor(AppTheme.primaryColor)
+                                HStack {
+                                    Spacer()
+                                    Text("View All Tips")
+                                        .font(AppTheme.Typography.subheadline)
+                                        .foregroundColor(AppTheme.primaryColor)
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(AppTheme.primaryColor)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                                        .fill(Color.white)
+                                        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
+                                )
                             }
                             .padding(.top, AppTheme.Spacing.small)
                         }
@@ -286,7 +348,7 @@ struct HomeView: View {
                 }
                 .padding(.vertical, AppTheme.Spacing.large)
             }
-            .background(AppTheme.backgroundColor.ignoresSafeArea())
+            .background(gradientBackground.ignoresSafeArea())
             .navigationTitle("HearCare")
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
@@ -304,7 +366,7 @@ struct HomeView: View {
         }
     }
     
-    // A simple audiogram preview based on the last test result
+    // A simple audiogram preview with enhanced styling
     private var simpleAudiogramPreview: some View {
         Group {
             if let lastTest = lastTestResult,
@@ -329,36 +391,181 @@ struct HomeView: View {
                                         .fill(Color.red)
                                         .frame(width: 8, height: 8)
                                         .offset(y: CGFloat(min(rightPoint.hearingLevel / 2, 40)))
+                                        .shadow(color: Color.red.opacity(0.3), radius: 2, x: 0, y: 1)
                                 }
                                 
                                 // Left ear marker (X)
                                 if let leftPoint = lastTest.leftEarData.first(where: { Int($0.frequency) == freq }) {
                                     Text("×")
-                                        .font(.system(size: 12))
+                                        .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(.blue)
                                         .offset(y: CGFloat(min(leftPoint.hearingLevel / 2, 40)))
                                 }
                                 
                                 // Frequency label
                                 Text(freq >= 1000 ? "\(freq/1000)k" : "\(freq)")
-                                    .font(.system(size: 8))
+                                    .font(.system(size: 9, weight: .medium))
                                     .foregroundColor(.gray)
                                     .offset(y: 45)
                             }
                         }
                     }
-                    
-                    // View details indicator
-                    Text("Tap to view details")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .offset(y: -40)
                 }
             } else {
-                Text("Tap to view detailed audiogram")
+                HStack {
+                    Spacer()
+                    VStack(spacing: 10) {
+                        Image(systemName: "chart.xyaxis.line")
+                            .font(.system(size: 24))
+                            .foregroundColor(Color.gray.opacity(0.5))
+                        
+                        Text("Tap to view detailed audiogram")
+                            .font(AppTheme.Typography.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    Spacer()
+                }
+            }
+        }
+    }
+    
+    // Create an ear status card with pastel styling
+    private func earStatusCard(ear: String, classification: String, icon: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(ear)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.textSecondary)
+                
+                Spacer()
+                
+                Image(systemName: icon)
+                    .foregroundColor(color.opacity(0.7))
+                    .font(.system(size: 12))
+            }
+            
+            Text(classification)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(colorForClassification(classification))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
+        )
+        .frame(maxWidth: .infinity)
+    }
+    
+    // Enhanced info card with pastel styling
+    private func enhancedInfoCard<Content: View>(
+        title: String,
+        icon: String,
+        color: Color,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            // Card header
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [color, color.opacity(0.7)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                
+                Text(title)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(Color(red: 0.2, green: 0.3, blue: 0.4))
+            }
+            
+            // Card content
+            content()
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.large)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.08), radius: 15, x: 0, y: 5)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.large)
+                .stroke(color.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal)
+    }
+    
+    // Enhanced action button with pastel background
+    private func enhancedActionButton(icon: String, title: String, color: Color) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundColor(color.opacity(0.8))
+                .frame(width: 36, height: 36)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.small)
+                        .fill(color.opacity(0.2))
+                )
+            
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.35))
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .foregroundColor(Color.gray.opacity(0.6))
+                .font(.system(size: 14))
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+    }
+    
+    // Enhanced tip row with pastel background
+    private func enhancedTipRow(icon: String, title: String, description: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundColor(.white)
+                .frame(width: 32, height: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [color, color.opacity(0.7)]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.35))
+                
+                Text(description)
                     .font(AppTheme.Typography.subheadline)
                     .foregroundColor(AppTheme.textSecondary)
             }
+            
+            Spacer()
         }
     }
     
@@ -411,102 +618,99 @@ struct HomeView: View {
 #endif
     }
     
-    private func tipRow(icon: String, title: String, description: String) -> some View {
-        HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(AppTheme.primaryColor)
-                .frame(width: 24, height: 24)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(AppTheme.Typography.headline)
-                
-                Text(description)
-                    .font(AppTheme.Typography.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
-            
-            Spacer()
-        }
-    }
-    
+    // Profile view with enhanced styling
     private var profileView: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: AppTheme.Spacing.large) {
-                    // Profile header
-                    VStack(spacing: AppTheme.Spacing.medium) {
-                        if let photoURL = authService.user?.photoURL {
-                            AsyncImage(url: photoURL) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            } placeholder: {
-                                ProgressView()
-                            }
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                        } else {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
+                    // Profile header with enhanced styling
+                    ZStack {
+                        RoundedRectangle(cornerRadius: AppTheme.Radius.large)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [pastelBlue, pastelBlue.opacity(0.7)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(height: 200)
+                        
+                        VStack(spacing: AppTheme.Spacing.medium) {
+                            if let photoURL = authService.user?.photoURL {
+                                AsyncImage(url: photoURL) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    ProgressView()
+                                }
                                 .frame(width: 100, height: 100)
-                                .foregroundColor(AppTheme.primaryColor)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white, lineWidth: 3)
+                                )
+                                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .frame(width: 100, height: 100)
+                                    .foregroundColor(.white)
+                                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                            }
+                            
+                            Text(authService.user?.displayName ?? "User")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text(authService.user?.email ?? "")
+                                .font(AppTheme.Typography.subheadline)
+                                .foregroundColor(Color.white.opacity(0.8))
                         }
-                        
-                        Text(authService.user?.displayName ?? "User")
-                            .font(AppTheme.Typography.title3)
-                        
-                        Text(authService.user?.email ?? "")
-                            .font(AppTheme.Typography.subheadline)
-                            .foregroundColor(AppTheme.textSecondary)
+                        .padding()
                     }
-                    .padding()
-                    
-                    // Profile options
-                    VStack(spacing: 0) {
-                        profileOption(icon: "bell.fill", title: "Notifications", hasToggle: true)
-                        
-                        Divider()
-                            .padding(.leading, 56)
-                        
-                        profileOption(icon: "person.fill", title: "Personal Information")
-                        
-                        Divider()
-                            .padding(.leading, 56)
-                        
-                        profileOption(icon: "ear.fill", title: "Hearing Health Profile")
-                        
-                        Divider()
-                            .padding(.leading, 56)
-                        
-                        profileOption(icon: "doc.text.fill", title: "Export Test Results")
-                        
-                        Divider()
-                            .padding(.leading, 56)
-                        
-                        profileOption(icon: "questionmark.circle.fill", title: "Help & Support")
-                        
-                        Divider()
-                            .padding(.leading, 56)
-                        
-                        profileOption(icon: "gear", title: "Settings")
-                    }
-                    .background(Color.white)
-                    .cornerRadius(AppTheme.Radius.medium)
                     .padding(.horizontal)
                     
-                    // Sign out button
+                    // Profile options with enhanced styling
+                    VStack(spacing: 0) {
+                        enhancedProfileOption(icon: "bell.fill", title: "Notifications", color: pastelGreen, hasToggle: true)
+                        
+                        enhancedProfileOption(icon: "person.fill", title: "Personal Information", color: pastelBlue)
+                        
+                        enhancedProfileOption(icon: "ear.fill", title: "Hearing Health Profile", color: pastelYellow)
+                        
+                        enhancedProfileOption(icon: "doc.text.fill", title: "Export Test Results", color: pastelPurple)
+                        
+                        enhancedProfileOption(icon: "questionmark.circle.fill", title: "Help & Support", color: pastelGreen)
+                        
+                        enhancedProfileOption(icon: "gear", title: "Settings", color: pastelBlue)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: AppTheme.Radius.large)
+                            .fill(Color.white)
+                            .shadow(color: Color.black.opacity(0.08), radius: 15, x: 0, y: 5)
+                    )
+                    .padding(.horizontal)
+                    
+                    // Sign out button with enhanced styling
                     Button(action: {
                         authService.signOut()
                     }) {
-                        Text("Sign Out")
-                            .font(AppTheme.Typography.headline)
-                            .foregroundColor(.red)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.white)
-                            .cornerRadius(AppTheme.Radius.medium)
+                        HStack {
+                            Spacer()
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 16))
+                            Text("Sign Out")
+                                .font(.system(size: 17, weight: .semibold))
+                            Spacer()
+                        }
+                        .foregroundColor(.red)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 3)
+                        )
                     }
                     .padding(.horizontal)
                     
@@ -521,16 +725,14 @@ struct HomeView: View {
                 }
                 .padding(.vertical, AppTheme.Spacing.large)
             }
-            .background(AppTheme.backgroundColor.ignoresSafeArea())
+            .background(gradientBackground.ignoresSafeArea())
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
         }
     }
     
-    // Update the profileOption function in HomeView.swift to use NavigationLink
-    // This replaces the existing profileOption function in HomeView.swift
-    
-    private func profileOption(icon: String, title: String, hasToggle: Bool = false) -> some View {
+    // Enhanced profile option with pastel styling
+    private func enhancedProfileOption(icon: String, title: String, color: Color, hasToggle: Bool = false) -> some View {
         NavigationLink(
             destination: Group {
                 if title == "Personal Information" {
@@ -559,15 +761,24 @@ struct HomeView: View {
         ) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(AppTheme.primaryColor)
-                    .frame(width: 24, height: 24)
-                    .padding(.leading, 16)
+                    .font(.system(size: 16))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [color, color.opacity(0.7)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
                 
                 Text(title)
-                    .font(AppTheme.Typography.body)
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(AppTheme.textPrimary)
-                    .padding(.leading, 16)
+                    .padding(.leading, 12)
                 
                 Spacer()
                 
@@ -577,10 +788,15 @@ struct HomeView: View {
                 } else {
                     Image(systemName: "chevron.right")
                         .foregroundColor(AppTheme.textSecondary)
+                        .font(.system(size: 14))
                 }
             }
-            .padding()
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
         }
         .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
     }
 }
+

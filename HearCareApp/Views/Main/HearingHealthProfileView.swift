@@ -1,15 +1,22 @@
-//
+//HearingHealthProfileView ใหม่
+
 //  HearingHealthProfileView.swift
 //  HearCareApp
 //
 //  Created by Hannarong Kaewkiriya on 18/3/2568 BE.
 //
-
 import SwiftUI
 import Charts
 
 struct HearingHealthProfileView: View {
     @StateObject private var viewModel = HearingHealthProfileViewModel()
+    
+    // MARK: - Color Scheme (Pastel)
+    private let pastelBlue = Color(red: 0.7, green: 0.85, blue: 0.95)
+    private let pastelGreen = Color(red: 0.8, green: 0.95, blue: 0.8)
+    private let pastelYellow = Color(red: 1.0, green: 0.95, blue: 0.75)
+    private let pastelPurple = Color(red: 0.85, green: 0.8, blue: 0.95)
+    private let cardBackground = Color.white
     
     var body: some View {
         ScrollView {
@@ -24,15 +31,25 @@ struct HearingHealthProfileView: View {
             }
             .padding(.vertical, AppTheme.Spacing.large)
         }
-        .background(AppTheme.backgroundColor.ignoresSafeArea())
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [pastelBlue.opacity(0.5), Color.white]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        )
         .navigationTitle("Hearing Health Profile")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
-                    viewModel.refreshData()
+                    withAnimation {
+                        viewModel.refreshData()
+                    }
                 }) {
                     Image(systemName: "arrow.clockwise")
+                        .foregroundColor(AppTheme.primaryColor)
                 }
                 .disabled(viewModel.isLoading)
             }
@@ -49,11 +66,20 @@ struct HearingHealthProfileView: View {
         }
     }
     
+    // MARK: - Loading View
     private var loadingView: some View {
         VStack(spacing: AppTheme.Spacing.large) {
             Spacer()
-            ProgressView()
-                .scaleEffect(1.5)
+            ZStack {
+                Circle()
+                    .fill(pastelBlue.opacity(0.2))
+                    .frame(width: 120, height: 120)
+                
+                ProgressView()
+                    .scaleEffect(2)
+                    .tint(AppTheme.primaryColor)
+            }
+            
             Text("Loading your hearing profile...")
                 .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.textSecondary)
@@ -63,14 +89,23 @@ struct HearingHealthProfileView: View {
         .frame(maxWidth: .infinity, minHeight: 300)
     }
     
+    // MARK: - Empty State View
     private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "ear.fill")
-                .font(.system(size: 60))
-                .foregroundColor(AppTheme.primaryColor.opacity(0.5))
+        VStack(spacing: 28) {
+            ZStack {
+                Circle()
+                    .fill(pastelBlue.opacity(0.2))
+                    .frame(width: 120, height: 120)
+                
+                Image(systemName: "ear.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(AppTheme.primaryColor)
+            }
+            .padding(.top, 20)
             
             Text("No Hearing Data Available")
                 .font(AppTheme.Typography.title3)
+                .fontWeight(.bold)
             
             Text("Complete your first hearing test to generate your hearing health profile.")
                 .font(AppTheme.Typography.body)
@@ -81,174 +116,201 @@ struct HearingHealthProfileView: View {
             Spacer().frame(height: 20)
             
             NavigationLink(destination: HearingTestView()) {
-                Text("Take a Hearing Test")
-                    .primaryButton()
-                    .padding(.horizontal, 40)
+                HStack {
+                    Image(systemName: "waveform")
+                        .font(.system(size: 18))
+                    Text("Take a Hearing Test")
+                        .fontWeight(.semibold)
+                }
+                .frame(minWidth: 220, minHeight: 50)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [AppTheme.primaryColor, AppTheme.primaryColor.opacity(0.8)]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .foregroundColor(.white)
+                .cornerRadius(25)
+                .shadow(color: AppTheme.primaryColor.opacity(0.4), radius: 5, x: 0, y: 3)
             }
         }
         .padding()
-        .frame(maxWidth: .infinity, minHeight: 300)
+        .frame(maxWidth: .infinity, minHeight: 400)
     }
     
+    // MARK: - Main Content
     private var hearingProfileContent: some View {
         VStack(spacing: AppTheme.Spacing.large) {
             // Overall Hearing Health Summary
-            InfoCard(title: "Hearing Health Summary", icon: "waveform.path.ecg") {
+            enhancedInfoCard(
+                title: "Hearing Health Summary",
+                icon: "waveform.path.ecg",
+                color: pastelBlue
+            ) {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                     HStack {
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 5) {
                             Text("Overall Status")
                                 .font(AppTheme.Typography.subheadline)
                                 .foregroundColor(AppTheme.textSecondary)
                             
                             Text(viewModel.overallStatus.title)
                                 .font(AppTheme.Typography.title3)
+                                .fontWeight(.bold)
                                 .foregroundColor(viewModel.overallStatus.color)
                         }
                         
                         Spacer()
                         
-                        CircularProgressView(progress: viewModel.overallStatus.score / 100,
-                                            color: viewModel.overallStatus.color,
-                                            lineWidth: 8)
-                            .frame(width: 60, height: 60)
+                        ZStack {
+                            EnhancedCircularProgressView(
+                                progress: viewModel.overallStatus.score / 100,
+                                color: viewModel.overallStatus.color,
+                                lineWidth: 10
+                            )
+                            .frame(width: 70, height: 70)
+                        }
                     }
                     
                     Divider()
+                        .padding(.vertical, 8)
+                        .background(Color.clear)
                     
                     Text(viewModel.overallStatus.description)
                         .font(AppTheme.Typography.body)
                         .foregroundColor(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             
             // Ear-specific summary
-            InfoCard(title: "Ear Summary", icon: "ear.fill") {
+            enhancedInfoCard(
+                title: "Ear Summary",
+                icon: "ear.fill",
+                color: pastelGreen
+            ) {
                 HStack(spacing: AppTheme.Spacing.large) {
                     // Left ear
-                    VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                        HStack {
-                            Circle()
-                                .fill(Color.blue)
-                                .frame(width: 12, height: 12)
-                            Text("Left Ear")
-                                .font(AppTheme.Typography.headline)
-                        }
-                        
-                        Text(viewModel.leftEarStatus)
-                            .font(AppTheme.Typography.subheadline)
-                            .foregroundColor(colorForClassification(viewModel.leftEarStatus))
-                        
-                        Text("Last: \(viewModel.latestLeftEarReading) dB")
-                            .font(AppTheme.Typography.caption)
-                            .foregroundColor(AppTheme.textSecondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: AppTheme.Radius.small)
-                            .fill(Color.white)
+                    earSummaryCard(
+                        ear: "Left Ear",
+                        color: .blue,
+                        status: viewModel.leftEarStatus,
+                        reading: viewModel.latestLeftEarReading
                     )
                     
                     // Right ear
-                    VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                        HStack {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 12, height: 12)
-                            Text("Right Ear")
-                                .font(AppTheme.Typography.headline)
-                        }
-                        
-                        Text(viewModel.rightEarStatus)
-                            .font(AppTheme.Typography.subheadline)
-                            .foregroundColor(colorForClassification(viewModel.rightEarStatus))
-                        
-                        Text("Last: \(viewModel.latestRightEarReading) dB")
-                            .font(AppTheme.Typography.caption)
-                            .foregroundColor(AppTheme.textSecondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: AppTheme.Radius.small)
-                            .fill(Color.white)
+                    earSummaryCard(
+                        ear: "Right Ear",
+                        color: .red,
+                        status: viewModel.rightEarStatus,
+                        reading: viewModel.latestRightEarReading
                     )
                 }
             }
             
             // Trend analysis
-            InfoCard(title: "Hearing Trend Analysis", icon: "chart.line.uptrend.xyaxis") {
+            enhancedInfoCard(
+                title: "Hearing Trend Analysis",
+                icon: "chart.line.uptrend.xyaxis",
+                color: pastelYellow
+            ) {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                     if viewModel.hasTrendData {
-                        Picker("Frequency", selection: $viewModel.selectedFrequency) {
-                            ForEach(viewModel.frequencies, id: \.self) { frequency in
-                                Text("\(frequency) Hz").tag(frequency)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        .padding(.bottom, AppTheme.Spacing.small)
+                        Text("Select Frequency:")
+                            .font(AppTheme.Typography.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+                            .padding(.bottom, -5)
                         
-                        trendChart
-                            .frame(height: 200)
+                        enhancedPicker
+                            .padding(.bottom, 5)
+                        
+                        enhancedTrendChart
+                            .frame(height: 220)
+                            .padding(.top, 5)
+                        
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: 10, height: 10)
+                            Text("Left Ear")
+                                .font(AppTheme.Typography.caption)
+                            
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 10, height: 10)
+                                .padding(.leading, 8)
+                            Text("Right Ear")
+                                .font(AppTheme.Typography.caption)
+                        }
+                        .padding(.top, -5)
                         
                         Text(viewModel.trendAnalysis)
                             .font(AppTheme.Typography.subheadline)
                             .foregroundColor(AppTheme.textSecondary)
+                            .padding(.top, 5)
                     } else {
-                        Text("Not enough data to show trends. Complete more hearing tests to see your hearing trends over time.")
-                            .font(AppTheme.Typography.body)
-                            .foregroundColor(AppTheme.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding()
+                        noTrendDataView
                     }
                 }
             }
             
             // Frequency breakdown
-            InfoCard(title: "Frequency Response", icon: "waveform") {
+            enhancedInfoCard(
+                title: "Frequency Response",
+                icon: "waveform",
+                color: pastelPurple
+            ) {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                     Text("Your hearing sensitivity at different frequencies:")
                         .font(AppTheme.Typography.subheadline)
                         .foregroundColor(AppTheme.textSecondary)
                     
-                    frequencyChart
-                        .frame(height: 200)
+                    enhancedFrequencyChart
+                        .frame(height: 220)
                     
-                    frequencyBreakdownText
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    enhancedFrequencyBreakdownText
                 }
             }
             
             // AI Analysis
-            InfoCard(title: "AI Health Insights", icon: "brain") {
+            enhancedInfoCard(
+                title: "AI Health Insights",
+                icon: "brain",
+                color: pastelBlue
+            ) {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                    ForEach(viewModel.aiInsights.indices, id: \.self) { index in
-                        insightRow(insight: viewModel.aiInsights[index])
-                        
-                        if index < viewModel.aiInsights.count - 1 {
-                            Divider()
-                            .padding(.vertical, 4)
+                    if !viewModel.aiInsights.isEmpty {
+                        ForEach(viewModel.aiInsights.indices, id: \.self) { index in
+                            enhancedInsightRow(insight: viewModel.aiInsights[index])
+                            
+                            if index < viewModel.aiInsights.count - 1 {
+                                Divider()
+                                    .padding(.vertical, 8)
+                            }
                         }
-                    }
-                    
-                    if viewModel.aiInsights.isEmpty {
-                        Text("Complete more hearing tests to unlock AI-powered insights about your hearing health.")
-                            .font(AppTheme.Typography.body)
-                            .foregroundColor(AppTheme.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding()
+                    } else {
+                        noInsightsView
                     }
                 }
             }
             
             // Recommendations
-            InfoCard(title: "Recommendations", icon: "lightbulb.fill") {
+            enhancedInfoCard(
+                title: "Recommendations",
+                icon: "lightbulb.fill",
+                color: pastelGreen
+            ) {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                     ForEach(viewModel.recommendations.indices, id: \.self) { index in
-                        recommendationRow(number: index + 1, text: viewModel.recommendations[index])
+                        enhancedRecommendationRow(number: index + 1, text: viewModel.recommendations[index])
                         
                         if index < viewModel.recommendations.count - 1 {
                             Divider()
+                                .padding(.vertical, 5)
                         }
                     }
                     
@@ -257,26 +319,99 @@ struct HearingHealthProfileView: View {
                     }) {
                         HStack {
                             Spacer()
+                            Image(systemName: "calendar.badge.plus")
+                                .font(.system(size: 16))
                             Text("Schedule Professional Follow-up")
-                                .font(AppTheme.Typography.subheadline)
-                                .foregroundColor(AppTheme.primaryColor)
+                                .font(AppTheme.Typography.subheadline.bold())
                             Spacer()
                         }
+                        .foregroundColor(AppTheme.primaryColor)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(AppTheme.primaryColor, lineWidth: 1.5)
+                        )
                     }
-                    .padding(.top, AppTheme.Spacing.small)
+                    .padding(.top, 10)
                 }
             }
         }
         .padding(.horizontal)
     }
     
-    private var trendChart: some View {
+    // MARK: - Helper Views
+    private func earSummaryCard(ear: String, color: Color, status: String, reading: String) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            HStack {
+                Circle()
+                    .fill(color)
+                    .frame(width: 12, height: 12)
+                Text(ear)
+                    .font(AppTheme.Typography.headline)
+                    .fontWeight(.semibold)
+            }
+            
+            // Status pill
+            Text(status)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(colorForClassification(status))
+                )
+                .padding(.top, 4)
+            
+            Text("Last reading: \(reading) dB")
+                .font(AppTheme.Typography.caption)
+                .foregroundColor(AppTheme.textSecondary)
+                .padding(.top, 4)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+        )
+    }
+    
+    private var enhancedPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(viewModel.frequencies, id: \.self) { frequency in
+                    Button(action: {
+                        withAnimation {
+                            viewModel.selectedFrequency = frequency
+                        }
+                    }) {
+                        Text("\(frequency) Hz")
+                            .font(.system(size: 13, weight: .medium))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(viewModel.selectedFrequency == frequency ?
+                                          AppTheme.primaryColor : Color.gray.opacity(0.1))
+                            )
+                            .foregroundColor(viewModel.selectedFrequency == frequency ?
+                                            .white : AppTheme.textPrimary)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+    
+    private var enhancedTrendChart: some View {
         Chart {
             ForEach(viewModel.getFilteredTrendData(), id: \.date) { dataPoint in
                 LineMark(
                     x: .value("Date", dataPoint.date),
                     y: .value("Level", dataPoint.level)
                 )
+                .lineStyle(StrokeStyle(lineWidth: 3))
                 .foregroundStyle(dataPoint.ear == .left ? Color.blue : Color.red)
                 
                 PointMark(
@@ -284,6 +419,7 @@ struct HearingHealthProfileView: View {
                     y: .value("Level", dataPoint.level)
                 )
                 .foregroundStyle(dataPoint.ear == .left ? Color.blue : Color.red)
+                .symbolSize(50)
             }
         }
         .chartXAxis {
@@ -291,7 +427,7 @@ struct HearingHealthProfileView: View {
                 if let date = value.as(Date.self) {
                     AxisValueLabel {
                         Text(dateFormatter.string(from: date))
-                            .font(.caption)
+                            .font(.system(size: 12, weight: .medium))
                             .rotationEffect(.degrees(-45))
                     }
                 }
@@ -302,24 +438,62 @@ struct HearingHealthProfileView: View {
                 AxisValueLabel {
                     if let level = value.as(Float.self) {
                         Text("\(Int(level)) dB")
-                            .font(.caption)
+                            .font(.system(size: 12, weight: .medium))
                     }
                 }
             }
         }
         .chartYScale(domain: [0, 100])
+        .chartBackground { _ in
+            Color.white.opacity(0.5)
+        }
         .padding(.trailing, 20)
     }
     
-    private var frequencyChart: some View {
+    private var noTrendDataView: some View {
+        VStack(spacing: 15) {
+            Image(systemName: "chart.line.downtrend.xyaxis")
+                .font(.system(size: 32))
+                .foregroundColor(AppTheme.textSecondary.opacity(0.5))
+                .padding()
+                .background(
+                    Circle()
+                        .fill(Color.gray.opacity(0.1))
+                )
+                .padding()
+            
+            Text("Not enough data to show trends")
+                .font(AppTheme.Typography.headline)
+                .foregroundColor(AppTheme.textPrimary)
+                .multilineTextAlignment(.center)
+            
+            Text("Complete more hearing tests to see your hearing trends over time")
+                .font(AppTheme.Typography.subheadline)
+                .foregroundColor(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+    }
+    
+    private var enhancedFrequencyChart: some View {
         Chart {
             ForEach(viewModel.frequencyResponse, id: \.frequency) { point in
                 BarMark(
                     x: .value("Frequency", "\(point.frequency) Hz"),
                     y: .value("Response", point.level)
                 )
+                .cornerRadius(5)
                 .foregroundStyle(
-                    colorForLevel(point.level).opacity(0.7)
+                    LinearGradient(
+                        gradient: Gradient(
+                            colors: [colorForLevel(point.level).opacity(0.7),
+                                    colorForLevel(point.level)]
+                        ),
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
                 )
             }
         }
@@ -327,81 +501,210 @@ struct HearingHealthProfileView: View {
             AxisMarks(values: [0, 25, 50, 75, 100]) { value in
                 if let level = value.as(Int.self) {
                     AxisGridLine()
+                        .foregroundStyle(Color.gray.opacity(0.2))
                     AxisValueLabel {
                         Text("\(level) dB")
-                            .font(.caption)
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                }
+            }
+        }
+        .chartXAxis {
+            AxisMarks { value in
+                AxisValueLabel {
+                    if let freq = value.as(String.self) {
+                        Text(freq)
+                            .font(.system(size: 12, weight: .medium))
                     }
                 }
             }
         }
         .chartYScale(domain: [0, 100])
-    }
-    
-    private var frequencyBreakdownText: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text("Low Frequencies (500-1000 Hz)")
-                .font(AppTheme.Typography.subheadline)
-                .foregroundColor(viewModel.lowFrequencyStatus.color)
-            Text(viewModel.lowFrequencyStatus.description)
-                .font(AppTheme.Typography.caption)
-                .foregroundColor(AppTheme.textSecondary)
-            
-            Text("Mid Frequencies (1000-4000 Hz)")
-                .font(AppTheme.Typography.subheadline)
-                .foregroundColor(viewModel.midFrequencyStatus.color)
-                .padding(.top, 4)
-            Text(viewModel.midFrequencyStatus.description)
-                .font(AppTheme.Typography.caption)
-                .foregroundColor(AppTheme.textSecondary)
-            
-            Text("High Frequencies (4000-8000 Hz)")
-                .font(AppTheme.Typography.subheadline)
-                .foregroundColor(viewModel.highFrequencyStatus.color)
-                .padding(.top, 4)
-            Text(viewModel.highFrequencyStatus.description)
-                .font(AppTheme.Typography.caption)
-                .foregroundColor(AppTheme.textSecondary)
+        .chartBackground { _ in
+            Color.white.opacity(0.5)
         }
     }
     
-    private func insightRow(insight: HearingHealthProfileViewModel.AIInsight) -> some View {
-        HStack(spacing: AppTheme.Spacing.medium) {
-            Image(systemName: insight.icon)
-                .font(.system(size: 24))
-                .foregroundColor(insight.color)
-                .frame(width: 36, height: 36)
-                .background(
-                    Circle()
-                        .fill(insight.color.opacity(0.1))
-                )
+    private var enhancedFrequencyBreakdownText: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
+            frequencyRangeRow(
+                title: "Low Frequencies (500-1000 Hz)",
+                description: viewModel.lowFrequencyStatus.description,
+                color: viewModel.lowFrequencyStatus.color
+            )
+            
+            Divider()
+            
+            frequencyRangeRow(
+                title: "Mid Frequencies (1000-4000 Hz)",
+                description: viewModel.midFrequencyStatus.description,
+                color: viewModel.midFrequencyStatus.color
+            )
+            
+            Divider()
+            
+            frequencyRangeRow(
+                title: "High Frequencies (4000-8000 Hz)",
+                description: viewModel.highFrequencyStatus.description,
+                color: viewModel.highFrequencyStatus.color
+            )
+        }
+    }
+    
+    private func frequencyRangeRow(title: String, description: String, color: Color) -> some View {
+        HStack(spacing: 14) {
+            Rectangle()
+                .fill(color)
+                .frame(width: 4)
+                .cornerRadius(2)
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(insight.title)
-                    .font(AppTheme.Typography.headline)
-                
-                Text(insight.description)
+                Text(title)
                     .font(AppTheme.Typography.subheadline)
+                    .foregroundColor(color)
+                    .fontWeight(.semibold)
+                
+                Text(description)
+                    .font(AppTheme.Typography.caption)
                     .foregroundColor(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
     
-    private func recommendationRow(number: Int, text: String) -> some View {
-        HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
-            Text("\(number)")
+    private var noInsightsView: some View {
+        VStack(spacing: 15) {
+            Image(systemName: "brain")
+                .font(.system(size: 32))
+                .foregroundColor(AppTheme.textSecondary.opacity(0.5))
+                .padding()
+                .background(
+                    Circle()
+                        .fill(Color.gray.opacity(0.1))
+                )
+                .padding()
+            
+            Text("AI Insights Coming Soon")
+                .font(AppTheme.Typography.headline)
+                .foregroundColor(AppTheme.textPrimary)
+                .multilineTextAlignment(.center)
+            
+            Text("Complete more hearing tests to unlock AI-powered insights about your hearing health")
                 .font(AppTheme.Typography.subheadline)
+                .foregroundColor(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+    }
+    
+    private func enhancedInsightRow(insight: HearingHealthProfileViewModel.AIInsight) -> some View {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
+            Image(systemName: insight.icon)
+                .font(.system(size: 18))
                 .foregroundColor(.white)
-                .frame(width: 24, height: 24)
-                .background(Circle().fill(AppTheme.primaryColor))
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [insight.color, insight.color.opacity(0.8)]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: insight.color.opacity(0.3), radius: 3, x: 0, y: 2)
+                )
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Text(insight.title)
+                    .font(AppTheme.Typography.headline)
+                    .fontWeight(.semibold)
+                
+                Text(insight.description)
+                    .font(AppTheme.Typography.subheadline)
+                    .foregroundColor(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+    
+    private func enhancedRecommendationRow(number: Int, text: String) -> some View {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [AppTheme.primaryColor, AppTheme.primaryColor.opacity(0.8)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 28, height: 28)
+                    .shadow(color: AppTheme.primaryColor.opacity(0.3), radius: 2, x: 0, y: 1)
+                
+                Text("\(number)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+            }
             
             Text(text)
                 .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
             
             Spacer()
         }
     }
     
+    // MARK: - Enhanced Card Container
+    private func enhancedInfoCard<Content: View>(
+        title: String,
+        icon: String,
+        color: Color,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [color, color.opacity(0.7)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                
+                Text(title)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(AppTheme.textPrimary)
+                
+                Spacer()
+            }
+            .padding(.bottom, 4)
+            
+            content()
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.large)
+                .fill(cardBackground)
+                .shadow(color: Color.black.opacity(0.07), radius: 10, x: 0, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.large)
+                .stroke(color.opacity(0.2), lineWidth: 1)
+        )
+    }
+    
+    // MARK: - Helper Functions
     private func colorForClassification(_ classification: String) -> Color {
         switch classification {
         case "Normal Hearing":
@@ -445,24 +748,30 @@ struct HearingHealthProfileView: View {
     }()
 }
 
-// MARK: - Circular Progress View
-struct CircularProgressView: View {
+// MARK: - Enhanced Circular Progress View
+struct EnhancedCircularProgressView: View {
     var progress: Double
     var color: Color
     var lineWidth: CGFloat = 8
     
     var body: some View {
         ZStack {
+            // Track circle
             Circle()
                 .stroke(
                     color.opacity(0.2),
                     lineWidth: lineWidth
                 )
             
+            // Progress circle
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(
-                    color,
+                    LinearGradient(
+                        gradient: Gradient(colors: [color.opacity(0.8), color]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
                     style: StrokeStyle(
                         lineWidth: lineWidth,
                         lineCap: .round
@@ -470,16 +779,16 @@ struct CircularProgressView: View {
                 )
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut, value: progress)
+                .shadow(color: color.opacity(0.3), radius: 3, x: 0, y: 0)
             
+            // Percentage text
             Text("\(Int(progress * 100))")
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(color)
         }
     }
 }
 
-#Preview {
-    NavigationView {
-        HearingHealthProfileView()
-    }
-}
+
+
+
