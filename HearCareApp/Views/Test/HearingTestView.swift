@@ -9,6 +9,9 @@ private let pastelRed = Color(red: 255/255, green: 180/255, blue: 180/255)
 struct HearingTestView: View {
     @StateObject private var testManager = HearingTestManager()
     @State private var testStage: TestStage = .microphonePermission
+    @State private var animating = false
+
+
     // ตั้งค่าเริ่มต้นเป็นหูขวาเท่านั้น
     @State private var selectedEar: AudioService.Ear = .right
     @State private var microphonePermissionGranted = false
@@ -793,16 +796,32 @@ struct HearingTestView: View {
                         VStack(spacing: AppTheme.Spacing.large) {
                             // ไอคอนเสร็จสิ้น
                             ZStack {
+                                // วงกลมพื้นหลัง
                                 Circle()
-                                    .fill(pastelGreen.opacity(0.2))
+                                    .fill(pastelGreen.opacity(1))
                                     .frame(width: 120, height: 120)
+                                    .scaleEffect(animating ? 1.1 : 1.0)
+                                    .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: animating)
                                 
+                                // เอฟเฟกต์เรืองแสง
+                                Circle()
+                                    .fill(pastelGreen.opacity(0.8))
+                                    .frame(width: 140, height: 140)
+                                    .scaleEffect(animating ? 1.2 : 0.9)
+                                    .opacity(animating ? 0.6 : 0.2)
+                                    .animation(Animation.easeInOut(duration: 2).repeatForever(autoreverses: true), value: animating)
+                                
+                                // ไอคอนเครื่องหมายถูก
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 80))
-                                    .foregroundColor(Color(red: 181/255, green: 250/255, blue: 215/255))
+                                    .foregroundColor(Color(red: 29/255, green: 205/255, blue: 159/255))
                                     .shadow(color: pastelGreen.opacity(0.5), radius: 3, x: 0, y: 2)
+                                    .animation(Animation.easeInOut(duration: 3).repeatForever(autoreverses: false), value: animating)
                             }
                             .padding()
+                            .onAppear {
+                                animating = true
+                            }
                             
                             // ข้อความหัวข้อ
                             VStack(spacing: 8) {
@@ -853,6 +872,8 @@ struct HearingTestView: View {
                             // เริ่มการติดตามเสียงรบกวนสำหรับการทดสอบในอนาคต
                             soundService.startMonitoring()
                         }
+                        
+                        
                     }
                     
                     private func createTestSummary() -> some View {
