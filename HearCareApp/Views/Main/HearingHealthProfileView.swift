@@ -12,11 +12,23 @@ struct HearingHealthProfileView: View {
     @StateObject private var viewModel = HearingHealthProfileViewModel()
     
     // MARK: - Color Scheme (Pastel)
-    private let pastelBlue = Color(red: 0.7, green: 0.85, blue: 0.95)
-    private let pastelGreen = Color(red: 0.8, green: 0.95, blue: 0.8)
-    private let pastelYellow = Color(red: 1.0, green: 0.95, blue: 0.75)
-    private let pastelPurple = Color(red: 0.85, green: 0.8, blue: 0.95)
+
     private let cardBackground = Color.white
+    private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
+    private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
+    private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
+    private let pastelPurple = Color(red: 0.88, green: 0.83, blue: 0.98)
+    private let pastelRed = Color(red: 255/255, green: 180/255, blue: 180/255)
+    private let pastelOrange = Color(red: 255/255, green: 210/255, blue: 170/255)
+    
+    private var backgroundGradient: LinearGradient {
+        LinearGradient(
+            gradient: Gradient(colors: [pastelBlue.opacity(0.6), pastelGreen.opacity(0.5)]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
     
     var body: some View {
         ScrollView {
@@ -32,12 +44,8 @@ struct HearingHealthProfileView: View {
             .padding(.vertical, AppTheme.Spacing.large)
         }
         .background(
-            LinearGradient(
-                gradient: Gradient(colors: [pastelBlue.opacity(0.5), Color.white]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+          backgroundGradient
+          .ignoresSafeArea()
         )
         .navigationTitle("Hearing Health Profile")
         .navigationBarTitleDisplayMode(.inline)

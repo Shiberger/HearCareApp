@@ -18,6 +18,9 @@ struct HomeView: View {
     private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
     private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
     private let pastelPurple = Color(red: 0.88, green: 0.83, blue: 0.98)
+    private let pastelRed = Color(red: 255/255, green: 180/255, blue: 180/255)
+    private let pastelOrange = Color(red: 255/255, green: 210/255, blue: 170/255)
+       
 //    private let gradientBackground = LinearGradient(
 //        gradient: Gradient(colors: [
 //            Color(red: 0.89, green: 0.94, blue: 0.99),
@@ -104,7 +107,7 @@ struct HomeView: View {
                                     .font(.system(size: 28, weight: .bold))
                                     .foregroundColor(Color(red: 0.2, green: 0.3, blue: 0.4))
                                 
-                                Text("Track and monitor your hearing health")
+                                Text("ตรวจและติดตามสุขภาพหูของคุณ")
                                     .font(AppTheme.Typography.callout)
                                     .foregroundColor(Color(red: 0.3, green: 0.4, blue: 0.5))
                             }
@@ -120,51 +123,115 @@ struct HomeView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Quick actions with updated styling
+                    
+                    // ปรับปรุง Quick Actions พร้อมภาษาไทย
                     enhancedInfoCard(
-                        title: "Quick Actions",
+                        title: "เมนูด่วน",
                         icon: "bolt.fill",
                         color: pastelGreen
                     ) {
                         VStack(spacing: AppTheme.Spacing.medium) {
-                            NavigationLink(destination: HearingTestView()) {
-                                enhancedActionButton(
-                                    icon: "ear.fill",
-                                    title: "Take Hearing Test",
-                                    color: pastelBlue
-                                )
-                            }
-                            
-                            Button(action: {
-                                // View last test action
-                                if lastTestResult != nil {
-                                    navigateToLastTestDetails = true
-                                } else {
-                                    // Try to fetch the last test
-                                    fetchLastTest()
+                            // แถวบน - 2 รายการ
+                            HStack(spacing: 15) {
+                                // ปุ่มทดสอบการได้ยิน
+                                NavigationLink(destination: HearingTestView()) {
+                                    cardActionButton(
+                                        icon: "ear.fill",
+                                        title: "ทดสอบการได้ยิน",
+                                        description: "เริ่มการประเมินใหม่",
+                                        color: pastelBlue,
+                                        width: .infinity
+                                    )
                                 }
-                            }) {
-                                enhancedActionButton(
-                                    icon: "doc.text.fill",
-                                    title: "View Last Test",
-                                    color: pastelYellow
-                                )
-                            }
-                            
-                            // Debug Button
-                            if isDevelopmentMode() {
+                                
+                                // ปุ่มดูผลทดสอบล่าสุด
                                 Button(action: {
-                                    showingDebugTools = true
+                                    // View last test action
+                                    if lastTestResult != nil {
+                                        navigateToLastTestDetails = true
+                                    } else {
+                                        // Try to fetch the last test
+                                        fetchLastTest()
+                                    }
                                 }) {
-                                    enhancedActionButton(
-                                        icon: "hammer.fill",
-                                        title: "Debug Tools",
-                                        color: pastelPurple
+                                    cardActionButton(
+                                        icon: "doc.text.magnifyingglass",
+                                        title: "ผลล่าสุด",
+                                        description: "ดูผลทดสอบล่าสุด",
+                                        color: pastelYellow,
+                                        width: .infinity
                                     )
                                 }
                             }
+                            
+                            // แถวล่าง - 2 รายการ
+                            HStack(spacing: 15) {
+                                // ปุ่มประวัติ
+                                NavigationLink(destination: HistoryView()) {
+                                    cardActionButton(
+                                        icon: "clock.arrow.circlepath",
+                                        title: "ประวัติ",
+                                        description: "ผลการทดสอบทั้งหมด",
+                                        color: pastelPurple,
+                                        width: .infinity
+                                    )
+                                }
+                                
+                                // ปุ่มโปรไฟล์สุขภาพการได้ยิน
+                                NavigationLink(destination: HearingHealthProfileView()) {
+                                    cardActionButton(
+                                        icon: "heart.text.square.fill",
+                                        title: "โปรไฟล์สุขภาพ",
+                                        description: "โปรไฟล์การได้ยินของคุณ",
+                                        color: pastelRed,
+                                        width: .infinity
+                                    )
+                                }
+                            }
+                            
+//      MARK: - Debug Tools
+//                            // ปุ่มดีบัก - แสดงเฉพาะในโหมดพัฒนา
+//                            if isDevelopmentMode() {
+//                                Divider()
+//                                    .padding(.vertical, 5)
+//                                
+//                                Button(action: {
+//                                    showingDebugTools = true
+//                                }) {
+//                                    HStack {
+//                                        Image(systemName: "hammer.fill")
+//                                            .foregroundColor(.white)
+//                                            .padding(8)
+//                                            .background(
+//                                                RoundedRectangle(cornerRadius: 8)
+//                                                    .fill(pastelPurple)
+//                                            )
+//                                        
+//                                        Text("เครื่องมือดีบัก")
+//                                            .font(.system(size: 16, weight: .medium))
+//                                            .foregroundColor(AppTheme.textPrimary)
+//                                        
+//                                        Spacer()
+//                                        
+//                                        Image(systemName: "chevron.right")
+//                                            .foregroundColor(AppTheme.textSecondary)
+//                                            .font(.system(size: 14))
+//                                    }
+//                                    .padding(.vertical, 12)
+//                                    .padding(.horizontal, 14)
+//                                    .background(
+//                                        RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+//                                            .fill(Color.white)
+//                                            .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
+//                                    )
+//                                }
+//                            }
                         }
                     }
+
+                  
+                    
+                  
                     
                     // Hearing summary with pastel colors
                     enhancedInfoCard(
@@ -800,3 +867,49 @@ struct HomeView: View {
     }
 }
 
+// ฟังก์ชันสำหรับสร้างปุ่มการดำเนินการแบบการ์ด
+private func cardActionButton(icon: String, title: String, description: String, color: Color, width: CGFloat) -> some View {
+    VStack(alignment: .leading, spacing: 12) {
+        // ไอคอนและสีพื้นหลัง
+        Image(systemName: icon)
+            .font(.system(size: 20, weight: .semibold))
+            .foregroundColor(.white)
+            .frame(width: 40, height: 40)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [color, color.opacity(0.7)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .shadow(color: color.opacity(0.3), radius: 4, x: 0, y: 2)
+        
+        // ข้อความหัวข้อและคำอธิบาย
+        Text(title)
+            .font(.system(size: 16, weight: .bold))
+            .foregroundColor(Color(red: 0.2, green: 0.3, blue: 0.4))
+            .lineLimit(1)
+        
+        Text(description)
+            .font(.system(size: 12))
+            .foregroundColor(Color.gray.opacity(0.8))
+            .lineLimit(1)
+        
+        Spacer()
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .frame(maxWidth: width, minHeight: 130)
+    .background(
+        RoundedRectangle(cornerRadius: 16)
+            .fill(Color.white)
+            .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+    )
+    .overlay(
+        RoundedRectangle(cornerRadius: 16)
+            .stroke(color.opacity(0.15), lineWidth: 1)
+    )
+}
