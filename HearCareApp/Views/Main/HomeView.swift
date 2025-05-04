@@ -16,20 +16,11 @@ struct HomeView: View {
     // Color palette - Pastel
     private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
     private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
-    private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
+    private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 139/255)
     private let pastelPurple = Color(red: 0.88, green: 0.83, blue: 0.98)
     private let pastelRed = Color(red: 255/255, green: 180/255, blue: 180/255)
     private let pastelOrange = Color(red: 255/255, green: 210/255, blue: 170/255)
        
-//    private let gradientBackground = LinearGradient(
-//        gradient: Gradient(colors: [
-//            Color(red: 0.89, green: 0.94, blue: 0.99),
-//            Color(red: 0.95, green: 0.98, blue: 0.95)
-//        ]),
-//        startPoint: .topLeading,
-//        endPoint: .bottomTrailing
-//    )
-    
     private var gradientBackground: LinearGradient {
         LinearGradient(
             gradient: Gradient(colors: [pastelBlue.opacity(0.6), pastelGreen.opacity(0.5)]),
@@ -188,44 +179,6 @@ struct HomeView: View {
                                     )
                                 }
                             }
-                            
-//      MARK: - Debug Tools
-//                            // ปุ่มดีบัก - แสดงเฉพาะในโหมดพัฒนา
-//                            if isDevelopmentMode() {
-//                                Divider()
-//                                    .padding(.vertical, 5)
-//                                
-//                                Button(action: {
-//                                    showingDebugTools = true
-//                                }) {
-//                                    HStack {
-//                                        Image(systemName: "hammer.fill")
-//                                            .foregroundColor(.white)
-//                                            .padding(8)
-//                                            .background(
-//                                                RoundedRectangle(cornerRadius: 8)
-//                                                    .fill(pastelPurple)
-//                                            )
-//                                        
-//                                        Text("เครื่องมือดีบัก")
-//                                            .font(.system(size: 16, weight: .medium))
-//                                            .foregroundColor(AppTheme.textPrimary)
-//                                        
-//                                        Spacer()
-//                                        
-//                                        Image(systemName: "chevron.right")
-//                                            .foregroundColor(AppTheme.textSecondary)
-//                                            .font(.system(size: 14))
-//                                    }
-//                                    .padding(.vertical, 12)
-//                                    .padding(.horizontal, 14)
-//                                    .background(
-//                                        RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
-//                                            .fill(Color.white)
-//                                            .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
-//                                    )
-//                                }
-//                            }
                         }
                     }
 
@@ -300,7 +253,7 @@ struct HomeView: View {
                                     
                                     Text("Tap chart to view details")
                                         .font(AppTheme.Typography.caption)
-                                        .foregroundColor(AppTheme.primaryColor)
+                                        .foregroundColor(AppTheme.primaryColor.opacity(0.5))
                                 }
                             } else {
                                 // No test results available
@@ -334,38 +287,42 @@ struct HomeView: View {
                             }
                             
                             Button(action: {
-                                // Schedule professional test
+                                if let url = URL(string: "https://www.facebook.com/entswu/?locale=th_TH") {
+                                    UIApplication.shared.open(url)
+                                }
                             }) {
                                 HStack {
-                                    Spacer()
-                                    Image(systemName: "calendar.badge.plus")
-                                        .font(.system(size: 14))
-                                    Text("Schedule Professional Test")
-                                        .font(AppTheme.Typography.subheadline.bold())
-                                    Spacer()
+                                    Image(systemName: "person.2.fill")
+                                        .font(.system(size: 16))
+                                    
+                                    Text("ติดต่อผู้เชี่ยวชาญ")
+                                        .fontWeight(.medium)
                                 }
-                                .foregroundColor(AppTheme.primaryColor)
-                                .padding(.vertical, 12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
-                                        .stroke(AppTheme.primaryColor, lineWidth: 1.5)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .fill(pastelBlue)
+                                        .shadow(color: pastelBlue.opacity(0.5), radius: 5, x: 0, y: 3)
                                 )
                             }
-                            .padding(.top, AppTheme.Spacing.small)
+                            .padding()
                         }
+                        
                     }
                     
                     // Tips and education with card styling
                     enhancedInfoCard(
-                        title: "Hearing Health Tips",
+                        title: "เคล็ดลับสุขภาพการได้ยิน",
                         icon: "lightbulb.fill",
                         color: pastelBlue
                     ) {
                         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                             enhancedTipRow(
                                 icon: "volume.3.fill",
-                                title: "Safe Listening",
-                                description: "Keep volume below 60% when using headphones",
+                                title: "การฟังที่ปลอดภัย",
+                                description: "รักษาระดับเสียงต่ำกว่า 60% เมื่อใช้หูฟัง",
                                 color: pastelBlue
                             )
                             
@@ -374,8 +331,8 @@ struct HomeView: View {
                             
                             enhancedTipRow(
                                 icon: "ear.and.waveform",
-                                title: "Noise Protection",
-                                description: "Use earplugs in loud environments",
+                                title: "การป้องกันเสียงดัง",
+                                description: "ใช้ earplugs ในสภาพแวดล้อมที่มีเสียงดัง",
                                 color: pastelGreen
                             )
                             
@@ -384,33 +341,35 @@ struct HomeView: View {
                             
                             enhancedTipRow(
                                 icon: "clock.fill",
-                                title: "Regular Testing",
-                                description: "Test your hearing every 6-12 months",
+                                title: "การตรวจสม่ำเสมอ",
+                                description: "ตรวจการได้ยินกับผู้เชี่ยวชาญทุก 6-12 เดือน",
                                 color: pastelYellow
                             )
-                            
-                            Button(action: {
-                                // View all tips
-                            }) {
-                                HStack {
-                                    Spacer()
-                                    Text("View All Tips")
-                                        .font(AppTheme.Typography.subheadline)
-                                        .foregroundColor(AppTheme.primaryColor)
-                                    Image(systemName: "arrow.right")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(AppTheme.primaryColor)
-                                    Spacer()
-                                }
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
-                                        .fill(Color.white)
-                                        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
-                                )
-                            }
                             .padding(.top, AppTheme.Spacing.small)
                         }
+                        
+                        Button(action: {
+                            if let url = URL(string: "https://www.hearingcarecentres.co.uk/10-tips-care-ears-properly/") {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "person.2.fill")
+                                    .font(.system(size: 16))
+                                
+                                Text("ดูเพิ่มเติม")
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(pastelPurple)
+                                    .shadow(color: pastelPurple.opacity(0.5), radius: 5, x: 0, y: 3)
+                            )
+                        }
+                        .padding()
                     }
                 }
                 .padding(.vertical, AppTheme.Spacing.large)
@@ -884,8 +843,10 @@ private func cardActionButton(icon: String, title: String, description: String, 
                             endPoint: .bottomTrailing
                         )
                     )
+                
             )
-            .shadow(color: color.opacity(0.3), radius: 4, x: 0, y: 2)
+            .shadow(color: color.opacity(0.4), radius: 4, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
         
         // ข้อความหัวข้อและคำอธิบาย
         Text(title)

@@ -5,6 +5,9 @@ private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
 private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
 private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
 private let pastelRed = Color(red: 255/255, green: 180/255, blue: 180/255)
+private let pastelPurple = Color(red: 0.88, green: 0.83, blue: 0.98)
+private let pastelOrange = Color(red: 255/255, green: 210/255, blue: 170/255)
+   
 
 struct HearingTestView: View {
     @StateObject private var testManager = HearingTestManager()
@@ -861,8 +864,39 @@ struct HearingTestView: View {
                                 )
                                 .padding(.horizontal)
                             }
-                            .padding(.bottom, AppTheme.Spacing.large)
+                            NavigationLink(
+                                destination: HearingTestView()
+                            ) {
+                                HStack {
+                                    Image(systemName: "arrow.clockwise.circle")
+                                        .font(.system(size: 18))
+                                        .padding(.trailing, 5)
+                                    
+                                    Text("ทำการทดสอบอีกครั้ง")
+                                        .font(.system(size: 18, weight: .semibold))
+                                }
+                                .foregroundColor(pastelBlue)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .fill(.white)
+    
+                                        .shadow(color: pastelGreen.opacity(0.5), radius: 5, x: 0, y: 3)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(pastelBlue, lineWidth: 1)
+                                )
+                                .padding(.horizontal)
+                            }
+                            
+                            .padding(.bottom, AppTheme.Spacing.medium)
                         }
+                        // เปลี่ยนจาก large เป็น medium เพื่อให้มีระยะห่างที่เหมาะสมกับปุ่มถัดไป
+                        // เพิ่มปุ่มใหม่สำหรับย้อนกลับไปทำการทดสอบใหม่
+                        
+                        
                         .padding()
                         .onAppear {
                             // REMOVED: saveTestResults() call to prevent auto-saving
@@ -872,8 +906,6 @@ struct HearingTestView: View {
                             // เริ่มการติดตามเสียงรบกวนสำหรับการทดสอบในอนาคต
                             soundService.startMonitoring()
                         }
-                        
-                        
                     }
                     
                     private func createTestSummary() -> some View {
@@ -976,7 +1008,7 @@ struct HearingTestView: View {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 24))
-                                    .foregroundColor(pastelYellow)
+                                    .foregroundColor(pastelRed)
                                 
                                 Text("คำเตือนเสียงรบกวน")
                                     .font(.system(size: 18, weight: .bold))
@@ -993,7 +1025,7 @@ struct HearingTestView: View {
                             // ภาพประกอบ
                             Image(systemName: "waveform.badge.exclamationmark")
                                 .font(.system(size: 60))
-                                .foregroundColor(pastelYellow)
+                                .foregroundColor(pastelRed)
                                 .padding()
                             
                             // คำแนะนำ

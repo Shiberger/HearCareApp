@@ -303,15 +303,16 @@ struct DetailedResultsView: View {
                     )
                 }
                 
+   
                 // ปุ่มนัดหมาย
                 Button(action: {
                     viewModel.scheduleFollowUp()
                 }) {
                     HStack {
-                        Image(systemName: "calendar.badge.plus")
+                        Image(systemName: "person.2.fill")
                             .font(.system(size: 16))
                         
-                        Text("นัดหมายผู้เชี่ยวชาญ")
+                        Text("ติดต่อผู้เชี่ยวชาญ")
                             .fontWeight(.medium)
                     }
                     .foregroundColor(.white)
