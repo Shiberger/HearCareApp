@@ -125,6 +125,30 @@ class HearingTestManager: ObservableObject {
         }
     }
     
+    // Public method to generate a tone with specific parameters
+    // This allows the extension to access tone generation
+    func generateTone(frequency: Float, volume: Float, ear: AudioService.Ear) {
+        audioService.generateTone(frequency: frequency, volume: volume, ear: ear)
+        
+        // Update current properties
+        currentFrequency = frequency
+        // If using volume as dB level, update accordingly
+        // currentDBLevel = ... conversion logic if needed
+    }
+    
+    // Public method to stop any playing tones
+    // This provides access to tone stopping functionality without accessing private members
+    func stop() {
+        audioService.stop()
+        isPlaying = false
+    }
+    
+    // Public method to start a response timeout
+    // This can be called from the calibration extension
+    func startResponseTimeout() {
+        setResponseTimeout()
+    }
+    
     private func setResponseTimeout() {
         // Create a new timeout work item
         let timeoutWork = DispatchWorkItem { [weak self] in
@@ -421,5 +445,21 @@ class HearingTestManager: ObservableObject {
         }
         
         return (right: rightEarData, left: leftEarData)
+    }
+    
+    // MARK: - Calibrated test methods
+    
+    // Generate a calibrated tone using dB levels directly
+    func generateCalibratedTone(frequency: Float, dbHL: Float, ear: AudioService.Ear) {
+        // Use the CalibrationService to get the appropriate volume for this dB level
+        let calibrationService = CalibrationService.shared
+        let deviceVolume = calibrationService.convertDBToDeviceVolume(dbHL: dbHL, frequency: frequency)
+        
+        // Generate the tone with the calibrated volume
+        audioService.generateTone(frequency: frequency, volume: deviceVolume, ear: ear)
+        
+        // Update current properties
+        currentFrequency = frequency
+        currentDBLevel = dbHL
     }
 }

@@ -374,14 +374,14 @@ struct TestFrequencyDataPoint {
     let hearingLevel: Float
 }
 
-struct TestResult: Identifiable {
-    let id: String
-    let testDate: Date
-    let rightEarClassification: String
-    let leftEarClassification: String
-    let rightEarData: [TestFrequencyDataPoint]
-    let leftEarData: [TestFrequencyDataPoint]
-}
+//struct TestResult: Identifiable {
+//    let id: String
+//    let testDate: Date
+//    let rightEarClassification: String
+//    let leftEarClassification: String
+//    let rightEarData: [TestFrequencyDataPoint]
+//    let leftEarData: [TestFrequencyDataPoint]
+//}
 
 struct UserProfile {
     let id: String
