@@ -21,7 +21,7 @@ struct HearingTestView: View {
     @StateObject private var testManager = HearingTestManager()
     @State private var testStage: TestStage = .microphonePermission
     @State private var animating = false
-    
+
     // ตั้งค่าเริ่มต้นเป็นหูขวาเท่านั้น
     @State private var selectedEar: AudioService.Ear = .right
     @State private var microphonePermissionGranted = false
@@ -218,7 +218,7 @@ struct HearingTestView: View {
                 
                 // ก่อนเริ่มการทดสอบ
                 createBeforeYouBeginCard()
-                
+    
                 // วิธีการทำงาน
                 createHowItWorksCard()
                 
@@ -481,7 +481,7 @@ struct HearingTestView: View {
     }
     
     // MARK: - Preparation View
-    
+
     private var preparationView: some View {
         ScrollView {
             VStack(spacing: AppTheme.Spacing.large) {
@@ -840,7 +840,7 @@ struct HearingTestView: View {
             
             // วงกลมด้านใน
             let fillColor = testManager.currentEar == .right ?
-            pastelRed.opacity(0.2) : pastelBlue.opacity(0.2)
+                pastelRed.opacity(0.2) : pastelBlue.opacity(0.2)
             
             Circle()
                 .fill(fillColor)
@@ -856,7 +856,7 @@ struct HearingTestView: View {
             // ไอคอนหู
             let earColor = testManager.currentEar == .right ? pastelRed : pastelBlue
             let earRotation = testManager.currentEar == .right ?
-            Angle(degrees: 0) : Angle(degrees: 0)
+                Angle(degrees: 0) : Angle(degrees: 0)
             
             Image(systemName: "ear.fill")
                 .font(.system(size: 60))
@@ -871,7 +871,7 @@ struct HearingTestView: View {
     
     func createAnimatedRing(index: Int) -> some View {
         let ringColor = testManager.currentEar == .right ?
-        pastelRed.opacity(0.3) : pastelBlue.opacity(0.3)
+            pastelRed.opacity(0.3) : pastelBlue.opacity(0.3)
         let size = CGFloat(140 + (index * 30))
         
         return Circle()

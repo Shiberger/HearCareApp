@@ -16,7 +16,7 @@ class ResultsViewModel: ObservableObject {
     @Published var leftEarClassification: String = ""
     @Published var recommendations: [String] = []
     @Published var testDate: Date = Date()
-    @Published var testDuration: String = "8 minutes"
+    @Published var testDuration: String = "5 minutes"
     @Published var isSavedResult: Bool = false // Track if results have been saved
     
     struct FrequencyBreakdownItem {
@@ -141,49 +141,50 @@ class ResultsViewModel: ObservableObject {
         let classifications = [rightEarClassification, leftEarClassification]
         let worstClassification = classifications.max(by: { severity($0) < severity($1) })
         
-        switch worstClassification {
-        case "Normal Hearing":
-            recommendations = [
-                "Your hearing appears to be within normal range.",
-                "Continue to protect your hearing by avoiding prolonged exposure to loud noises.",
-                "Get your hearing checked annually as part of your health routine."
-            ]
-        case "Mild Hearing Loss":
-            recommendations = [
-                "You have mild hearing loss in one or both ears.",
-                "Consider scheduling a follow-up appointment with an audiologist.",
-                "Avoid noisy environments when possible.",
-                "Consider using assistive listening devices in challenging situations."
-            ]
-        case "Moderate Hearing Loss":
-            recommendations = [
-                "You have moderate hearing loss that may impact your daily communication.",
-                "We recommend consulting with an audiologist to discuss hearing aid options.",
-                "Consider strategies for better communication in noisy environments.",
-                "Look into hearing assistive technologies for phones and other devices."
-            ]
-        case "Moderately Severe Hearing Loss":
-            recommendations = [
-                "You have moderately severe hearing loss that significantly impacts daily communication.",
-                "Hearing aids are strongly recommended for this level of hearing loss.",
-                "Consider additional assistive listening devices for specific situations.",
-                "Learn communication strategies to maximize understanding in conversations."
-            ]
-        case "Severe Hearing Loss", "Profound Hearing Loss":
-            recommendations = [
-                "You have significant hearing loss that requires professional attention.",
-                "Please consult with an audiologist as soon as possible.",
-                "Hearing aids or other assistive devices may significantly improve your quality of life.",
-                "Consider learning about additional communication strategies like speech reading."
-            ]
-        default:
-            recommendations = [
-                "Based on your test results, we recommend consulting with a hearing specialist.",
-                "Regular hearing tests can help monitor changes in your hearing health."
-            ]
-        }
         
-        self.recommendations = recommendations
+        switch worstClassification {
+            case "Normal Hearing":
+                recommendations = [
+                    "การได้ยินของคุณอยู่ในเกณฑ์ปกติ",
+                    "ดูแลรักษาการได้ยินโดยหลีกเลี่ยงการสัมผัสเสียงดังเป็นเวลานาน",
+                    "ควรตรวจการได้ยินเป็นประจำทุกปีเพื่อเป็นส่วนหนึ่งของการดูแลสุขภาพ"
+                ]
+            case "Mild Hearing Loss":
+                recommendations = [
+                    "คุณมีการสูญเสียการได้ยินเล็กน้อยในหูข้างหนึ่งหรือทั้งสองข้าง",
+                    "ควรพิจารณานัดพบแพทย์ผู้เชี่ยวชาญด้านการได้ยิน",
+                    "หลีกเลี่ยงสภาพแวดล้อมที่มีเสียงดังเมื่อเป็นไปได้",
+                    "พิจารณาใช้อุปกรณ์ช่วยฟังในสถานการณ์ที่มีความท้าทาย"
+                ]
+            case "Moderate Hearing Loss":
+                recommendations = [
+                    "คุณมีการสูญเสียการได้ยินระดับปานกลางซึ่งอาจส่งผลกระทบต่อการสื่อสารในชีวิตประจำวัน",
+                    "เราแนะนำให้ปรึกษากับนักแก้ไขการได้ยินเพื่อหารือเกี่ยวกับตัวเลือกเครื่องช่วยฟัง",
+                    "พิจารณากลยุทธ์เพื่อการสื่อสารที่ดีขึ้นในสภาพแวดล้อมที่มีเสียงดัง",
+                    "ศึกษาเทคโนโลยีช่วยการได้ยินสำหรับโทรศัพท์และอุปกรณ์อื่นๆ"
+                ]
+            case "Moderately Severe Hearing Loss":
+                recommendations = [
+                    "คุณมีการสูญเสียการได้ยินระดับค่อนข้างรุนแรงซึ่งส่งผลกระทบอย่างมากต่อการสื่อสารในชีวิตประจำวัน",
+                    "เครื่องช่วยฟังได้รับการแนะนำอย่างยิ่งสำหรับการสูญเสียการได้ยินในระดับนี้",
+                    "พิจารณาอุปกรณ์ช่วยฟังเพิ่มเติมสำหรับสถานการณ์เฉพาะ",
+                    "เรียนรู้กลยุทธ์การสื่อสารเพื่อเพิ่มความเข้าใจในการสนทนาให้มากที่สุด"
+                ]
+            case "Severe Hearing Loss", "Profound Hearing Loss":
+                recommendations = [
+                    "คุณมีการสูญเสียการได้ยินที่รุนแรงซึ่งต้องการความช่วยเหลือจากผู้เชี่ยวชาญ",
+                    "กรุณาปรึกษากับนักแก้ไขการได้ยินโดยเร็วที่สุด",
+                    "เครื่องช่วยฟังหรืออุปกรณ์ช่วยเหลืออื่นๆ อาจช่วยปรับปรุงคุณภาพชีวิตของคุณได้อย่างมาก",
+                    "พิจารณาเรียนรู้เกี่ยวกับกลยุทธ์การสื่อสารเพิ่มเติมเช่นการอ่านริมฝีปากหรือการใช้ภาษามือ"
+                ]
+            default:
+                recommendations = [
+                    "จากผลการทดสอบของคุณ เราแนะนำให้ปรึกษาผู้เชี่ยวชาญด้านการได้ยิน",
+                    "การตรวจการได้ยินเป็นประจำสามารถช่วยติดตามการเปลี่ยนแปลงในสุขภาพการได้ยินของคุณ"
+                ]
+            }
+            
+            self.recommendations = recommendations
     }
     
     // Helper to determine severity of hearing classification
@@ -305,7 +306,7 @@ class ResultsViewModel: ObservableObject {
     func scheduleFollowUp() {
         // This would launch a calendar picker or integration with a booking system
         // For this example, we'll just provide a URL to a booking page
-        if let url = URL(string: "https://hearcare-app.com/book-appointment") {
+        if let url = URL(string: "https://www.facebook.com/entswu/?locale=th_TH") {
             UIApplication.shared.open(url)
         }
     }
