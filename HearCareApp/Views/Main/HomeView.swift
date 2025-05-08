@@ -14,21 +14,25 @@ struct HomeView: View {
     @State private var navigateToLastTestDetails = false
     
     // Color palette - Pastel
-    private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
-    private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
-    private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 139/255)
-    private let pastelPurple = Color(red: 0.88, green: 0.83, blue: 0.98)
-    private let pastelRed = Color(red: 255/255, green: 180/255, blue: 180/255)
-    private let pastelOrange = Color(red: 255/255, green: 210/255, blue: 170/255)
+    private let pastelBlue = Color(red: 0.75, green: 0.85, blue: 1.0)       // Bright sky blue
+    private let pastelGreen = Color(red: 0.75, green: 1.0, blue: 0.85)      // Bright mint green
+    private let pastelYellow = Color(red: 1.0, green: 0.95, blue: 0.75)     // Bright warm yellow
+    private let pastelPurple = Color(red: 0.9, green: 0.8, blue: 1.0)       // Bright lavender
+    private let pastelRed = Color(red: 1.0, green: 0.8, blue: 0.8)          // Bright coral
+    private let pastelOrange = Color(red: 1.0, green: 0.85, blue: 0.7)      // Bright peach
        
+    // Update the gradientBackground definition
     private var gradientBackground: LinearGradient {
         LinearGradient(
-            gradient: Gradient(colors: [pastelBlue.opacity(0.6), pastelGreen.opacity(0.5)]),
+            gradient: Gradient(colors: [
+                pastelBlue.opacity(1.0),  // Use full opacity
+                pastelGreen.opacity(0.9)   // Use higher opacity
+            ]),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
-    
+        
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -74,6 +78,32 @@ struct HomeView: View {
                 fetchLastTest()
             }
         }
+        .onAppear {
+            // Set the TabBar appearance globally for consistent behavior
+            let appearance = UITabBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = UIColor.white
+            
+            // Set the normal tab item colors to ensure visibility
+            let normalAttributes: [NSAttributedString.Key: Any] = [
+                .foregroundColor: UIColor.gray
+            ]
+            appearance.stackedLayoutAppearance.normal.iconColor = UIColor.gray
+            appearance.stackedLayoutAppearance.normal.titleTextAttributes = normalAttributes
+            
+            // Set the selected tab item colors
+            let selectedAttributes: [NSAttributedString.Key: Any] = [
+                .foregroundColor: UIColor(AppTheme.primaryColor)
+            ]
+            appearance.stackedLayoutAppearance.selected.iconColor = UIColor(AppTheme.primaryColor)
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = selectedAttributes
+            
+            // Apply the appearance to both standard and scrolled positions
+            UITabBar.appearance().standardAppearance = appearance
+            if #available(iOS 15.0, *) {
+                UITabBar.appearance().scrollEdgeAppearance = appearance
+            }
+        }
     }
     
     private var dashboardView: some View {
@@ -85,7 +115,9 @@ struct HomeView: View {
                         RoundedRectangle(cornerRadius: AppTheme.Radius.large)
                             .fill(
                                 LinearGradient(
-                                    gradient: Gradient(colors: [pastelBlue, pastelBlue.opacity(0.6)]),
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.68, green: 0.85, blue: 0.90),
+                                    ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -182,10 +214,6 @@ struct HomeView: View {
                         }
                     }
 
-                  
-                    
-                  
-                    
                     // Hearing summary with pastel colors
                     enhancedInfoCard(
                         title: "Hearing Summary",
@@ -375,7 +403,7 @@ struct HomeView: View {
                 .padding(.vertical, AppTheme.Spacing.large)
             }
             .background(gradientBackground.ignoresSafeArea())
-            .navigationTitle("HearCare")
+//            .navigationTitle("HearCare")
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 fetchLastTest()
@@ -654,7 +682,9 @@ struct HomeView: View {
                         RoundedRectangle(cornerRadius: AppTheme.Radius.large)
                             .fill(
                                 LinearGradient(
-                                    gradient: Gradient(colors: [pastelBlue, pastelBlue.opacity(0.7)]),
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.68, green: 0.85, blue: 0.90),  // Darker blue
+                                    ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -752,7 +782,7 @@ struct HomeView: View {
                 .padding(.vertical, AppTheme.Spacing.large)
             }
             .background(gradientBackground.ignoresSafeArea())
-            .navigationTitle("Profile")
+//            .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
         }
     }

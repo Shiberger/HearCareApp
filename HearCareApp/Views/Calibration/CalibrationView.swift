@@ -185,6 +185,7 @@ struct CalibrationView: View {
                 VStack(alignment: .leading) {
                     Text(calibrationService.headphoneModel == "No headphones detected" ? "No Headphones Detected" : "Headphones Connected")
                         .font(AppTheme.Typography.headline)
+                        .foregroundColor(AppTheme.primaryColor)
                     
                     if calibrationService.headphoneModel != "No headphones detected" {
                         Text(calibrationService.headphoneModel)
@@ -309,6 +310,7 @@ struct CalibrationView: View {
                 HStack {
                     Text("Selected Level:")
                         .font(AppTheme.Typography.body)
+                        .foregroundColor(AppTheme.primaryColor)
                     
                     Spacer()
                     
@@ -328,12 +330,15 @@ struct CalibrationView: View {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
                 Text("Can you answer these questions:")
                     .font(AppTheme.Typography.subheadline)
+                    .foregroundColor(AppTheme.primaryColor)
                 
                 Text("1. Is the tone clearly audible but still soft?")
                     .font(AppTheme.Typography.body)
+                    .foregroundColor(AppTheme.primaryColor)
                 
                 Text("2. Would you be able to detect this tone in a quiet room?")
                     .font(AppTheme.Typography.body)
+                    .foregroundColor(AppTheme.primaryColor)
                 
                 Text("If you answered 'yes' to both questions, your calibration is good. If not, go back and adjust the level.")
                     .font(AppTheme.Typography.footnote)
@@ -371,6 +376,7 @@ struct CalibrationView: View {
                     
                     Text(UIDevice.current.model)
                         .font(AppTheme.Typography.body)
+                        .foregroundColor(AppTheme.primaryColor)
                 }
                 
                 Divider()
@@ -384,6 +390,7 @@ struct CalibrationView: View {
                     
                     Text(calibrationService.headphoneModel)
                         .font(AppTheme.Typography.body)
+                        .foregroundColor(AppTheme.primaryColor)
                 }
                 
                 Divider()
@@ -397,6 +404,7 @@ struct CalibrationView: View {
                     
                     Text(String(format: "%.2f", sliderValue))
                         .font(AppTheme.Typography.body)
+                        .foregroundColor(AppTheme.primaryColor)
                 }
                 
                 Divider()
@@ -410,6 +418,7 @@ struct CalibrationView: View {
                     
                     Text(Date(), style: .date)
                         .font(AppTheme.Typography.body)
+                        .foregroundColor(AppTheme.primaryColor)
                 }
             }
             .padding()

@@ -15,10 +15,48 @@ struct HearCareApp: App {
     @State private var showSplash = true
     
     // สีพาสเทล
-    private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
-    private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
-    private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
+    let pastelBlue = Color(red: 0.75, green: 0.85, blue: 1.0)       // Bright sky blue
+    let pastelGreen = Color(red: 0.75, green: 1.0, blue: 0.85)      // Bright mint green
+    let pastelYellow = Color(red: 1.0, green: 0.95, blue: 0.75)     // Bright warm yellow
     private let pastelPurple = Color(red: 0.88, green: 0.83, blue: 0.98)
+    
+    // Add this initializer to your HearCareApp struct
+    init() {
+        // Configure the navigation bar appearance
+        let navBarAppearance = UINavigationBarAppearance()
+        navBarAppearance.configureWithOpaqueBackground()
+        navBarAppearance.backgroundColor = .white
+        navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.black]
+        navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.black]
+        
+        // Apply the navigation bar appearance settings
+        UINavigationBar.appearance().standardAppearance = navBarAppearance
+        UINavigationBar.appearance().compactAppearance = navBarAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navBarAppearance
+        UINavigationBar.appearance().tintColor = UIColor(AppTheme.primaryColor)
+        
+        // Also configure the tab bar appearance for consistency
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = .white
+        
+        // Configure tab item colors
+        let normalAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.gray]
+        tabBarAppearance.stackedLayoutAppearance.normal.iconColor = UIColor.gray
+        tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = normalAttributes
+        
+        let selectedAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor(AppTheme.primaryColor)
+        ]
+        tabBarAppearance.stackedLayoutAppearance.selected.iconColor = UIColor(AppTheme.primaryColor)
+        tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = selectedAttributes
+        
+        // Apply the tab bar appearance settings
+        UITabBar.appearance().standardAppearance = tabBarAppearance
+        if #available(iOS 15.0, *) {
+            UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+        }
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -69,7 +107,7 @@ struct EnhancedSplashScreenView: View {
         ZStack {
             // พื้นหลังแบบ gradient สไตล์พาสเทล
             LinearGradient(
-                gradient: Gradient(colors: [pastelBlue.opacity(0.8), pastelGreen.opacity(0.6)]),
+                gradient: Gradient(colors: [pastelBlue.opacity(1.0), pastelGreen.opacity(0.9)]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -124,7 +162,7 @@ struct EnhancedSplashScreenView: View {
                 VStack(spacing: 10) {
                     Text("HearCare")
                         .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.2, green: 0.3, blue: 0.4))
+                        .foregroundColor(AppTheme.primaryColor)
                     
                     Text("ดูแลการได้ยินของคุณได้ทุกวัน")
                         .font(.system(size: 16, weight: .medium, design: .rounded))

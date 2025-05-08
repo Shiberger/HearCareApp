@@ -28,14 +28,14 @@ struct PersonalInformationView: View {
     private let saveDebounceInterval: TimeInterval = 2.0 // 2 seconds debounce time
     
     // สีพาสเทล
-    private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
-    private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
-    private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
+    private let pastelBlue = Color(red: 0.75, green: 0.85, blue: 1.0)       // Bright sky blue
+    private let pastelGreen = Color(red: 0.75, green: 1.0, blue: 0.85)      // Bright mint green
+    private let pastelYellow = Color(red: 1.0, green: 0.95, blue: 0.75)     // Bright warm yellow
     
     // เกรเดียนต์พื้นหลัง
     private var backgroundGradient: LinearGradient {
         LinearGradient(
-            gradient: Gradient(colors: [pastelBlue.opacity(0.5), pastelGreen.opacity(0.3)]),
+            gradient: Gradient(colors: [pastelBlue.opacity(1.0), pastelGreen.opacity(0.9)]),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )

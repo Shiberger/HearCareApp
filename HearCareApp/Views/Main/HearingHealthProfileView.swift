@@ -14,21 +14,20 @@ struct HearingHealthProfileView: View {
     // MARK: - Color Scheme (Pastel)
 
     private let cardBackground = Color.white
-    private let pastelBlue = Color(red: 174/255, green: 198/255, blue: 255/255)
-    private let pastelGreen = Color(red: 181/255, green: 234/255, blue: 215/255)
-    private let pastelYellow = Color(red: 255/255, green: 240/255, blue: 179/255)
-    private let pastelPurple = Color(red: 0.88, green: 0.83, blue: 0.98)
-    private let pastelRed = Color(red: 255/255, green: 180/255, blue: 180/255)
-    private let pastelOrange = Color(red: 255/255, green: 210/255, blue: 170/255)
+    private let pastelBlue = Color(red: 0.75, green: 0.85, blue: 1.0)       // Bright sky blue
+    private let pastelGreen = Color(red: 0.75, green: 1.0, blue: 0.85)      // Bright mint green
+    private let pastelYellow = Color(red: 1.0, green: 0.95, blue: 0.75)     // Bright warm yellow
+    private let pastelPurple = Color(red: 0.9, green: 0.8, blue: 1.0)       // Bright lavender
+    private let pastelRed = Color(red: 1.0, green: 0.8, blue: 0.8)          // Bright coral
+    private let pastelOrange = Color(red: 1.0, green: 0.85, blue: 0.7)      // Bright peach
     
     private var backgroundGradient: LinearGradient {
         LinearGradient(
-            gradient: Gradient(colors: [pastelBlue.opacity(0.6), pastelGreen.opacity(0.5)]),
+            gradient: Gradient(colors: [pastelBlue.opacity(1.0), pastelGreen.opacity(0.9)]),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
-    
     
     var body: some View {
         ScrollView {

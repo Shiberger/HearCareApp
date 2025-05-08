@@ -30,6 +30,9 @@ struct AmbientSoundMonitorView: View {
     private let moderateLimit: Float = 50.0
     private let excessiveLimit: Float = 65.0
     
+    // Fixed width for the sound meter to prevent layout shifts
+    private let meterWidth: CGFloat = UIScreen.main.bounds.width - 80
+    
     var body: some View {
         VStack(spacing: AppTheme.Spacing.medium) {
             // Header with title and info button
@@ -69,18 +72,20 @@ struct AmbientSoundMonitorView: View {
             
             // Advanced sound level meter with thresholds
             VStack(spacing: 2) {
-                // Main meter
+                // Main meter - using fixed width container
                 ZStack(alignment: .leading) {
+                    // Container with fixed width
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(width: meterWidth, height: 16)
+                    
                     // Background track with threshold markers
                     Rectangle()
                         .fill(Color.gray.opacity(0.1))
-                        .frame(height: 16)
+                        .frame(width: meterWidth, height: 16)
                         .cornerRadius(AppTheme.Radius.small)
                         .overlay(
-                            HStack(spacing: 0) {
-                                // Create threshold markers
-                                createThresholdMarkers()
-                            }
+                            createThresholdMarkers()
                         )
                     
                     // Fill based on current decibel level with gradient
@@ -108,9 +113,11 @@ struct AmbientSoundMonitorView: View {
                         .offset(x: calculateWidth() - 1)
                         .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 0)
                 }
+                .frame(width: meterWidth) // Fixed width container
+                .frame(maxWidth: .infinity, alignment: .center) // Center in parent
                 
                 // Scale labels
-                HStack(spacing: 0) {
+                HStack {
                     Text("0")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
@@ -139,19 +146,22 @@ struct AmbientSoundMonitorView: View {
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
+                .frame(width: meterWidth) // Fixed width to match meter
+                .frame(maxWidth: .infinity, alignment: .center) // Center in parent
                 .frame(height: 16)
             }
             
             // Current noise information
             VStack(spacing: 4) {
                 HStack {
-                    Text("\(Int(soundService.currentDecibels)) dB")
+                    Text("\(Int(min(soundService.currentDecibels, 100))) dB")
                         .font(AppTheme.Typography.headline)
                         .foregroundColor(levelColor())
                     
                     Text("(\(getSimilarNoiseDescription()))")
                         .font(AppTheme.Typography.subheadline)
                         .foregroundColor(AppTheme.textSecondary)
+                        .lineLimit(1)
                     
                     Spacer()
                 }
@@ -161,6 +171,7 @@ struct AmbientSoundMonitorView: View {
                         .font(AppTheme.Typography.caption)
                         .foregroundColor(AppTheme.textSecondary)
                         .multilineTextAlignment(.leading)
+                        .lineLimit(2)
                     
                     Spacer()
                 }
@@ -194,6 +205,9 @@ struct AmbientSoundMonitorView: View {
             }
         }
         .padding()
+        .frame(height: 180) // Fixed height
+        .frame(maxWidth: .infinity) // Take full width
+        .clipped() // Prevent content from overflowing
         .background(
             RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
                 .fill(Color.white)
@@ -257,40 +271,45 @@ struct AmbientSoundMonitorView: View {
     
     // Create threshold markers for the sound meter
     private func createThresholdMarkers() -> some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // Acceptable threshold
-                Rectangle()
-                    .fill(Color.green.opacity(0.1))
-                    .frame(width: calculateThresholdPosition(threshold: acceptableLimit, in: geometry.size.width), height: 16)
-                
-                // Moderate threshold line
-                Rectangle()
-                    .fill(Color.yellow)
-                    .frame(width: 2, height: 16)
-                    .offset(x: calculateThresholdPosition(threshold: moderateLimit, in: geometry.size.width) - 1)
-                
-                // Excessive threshold line
-                Rectangle()
-                    .fill(Color.red)
-                    .frame(width: 2, height: 16)
-                    .offset(x: calculateThresholdPosition(threshold: excessiveLimit, in: geometry.size.width) - 1)
-            }
+        ZStack(alignment: .leading) {
+            // Acceptable threshold
+            Rectangle()
+                .fill(Color.green.opacity(0.1))
+                .frame(width: calculateThresholdPosition(threshold: acceptableLimit), height: 16)
+            
+            // Moderate threshold line
+            Rectangle()
+                .fill(Color.yellow)
+                .frame(width: 2, height: 16)
+                .offset(x: calculateThresholdPosition(threshold: moderateLimit) - 1)
+            
+            // Excessive threshold line
+            Rectangle()
+                .fill(Color.red)
+                .frame(width: 2, height: 16)
+                .offset(x: calculateThresholdPosition(threshold: excessiveLimit) - 1)
         }
     }
     
-    // Calculate position for threshold markers
-    private func calculateThresholdPosition(threshold: Float, in width: CGFloat) -> CGFloat {
+    // Calculate position for threshold markers using fixed width
+    private func calculateThresholdPosition(threshold: Float) -> CGFloat {
         let maxValue: Float = 100.0
-        let position = CGFloat(min(threshold / maxValue, 1.0)) * width
+        let position = CGFloat(min(threshold / maxValue, 1.0)) * meterWidth
         return position
     }
     
-    // Calculate the width of the filled portion of the progress bar
+    // Calculate width based on fixed meter width
     private func calculateWidth() -> CGFloat {
-        let maxWidth: CGFloat = UIScreen.main.bounds.width - 40 // Adjust for padding
-        let progress = CGFloat(min(soundService.currentDecibels / 100.0, 1.0))
-        return maxWidth * progress
+        // Cap the maximum value at 100dB for the visual display
+        let cappedDecibels = min(soundService.currentDecibels, 100.0)
+        
+        // Calculate the progress with the capped value
+        let progress = CGFloat(cappedDecibels / 100.0)
+        
+        // Ensure progress is between 0 and 1 for safety
+        let safeProgress = max(0, min(progress, 1.0))
+        
+        return meterWidth * safeProgress
     }
     
     // Determine the color based on the current noise level
@@ -307,7 +326,7 @@ struct AmbientSoundMonitorView: View {
     
     // Get a description of a similar noise at the current level
     private func getSimilarNoiseDescription() -> String {
-        let currentLevel = Int(soundService.currentDecibels)
+        let currentLevel = Int(min(soundService.currentDecibels, 100.0))
         
         // Find the closest reference noise
         let sortedByDistance = referenceNoises.sorted {
