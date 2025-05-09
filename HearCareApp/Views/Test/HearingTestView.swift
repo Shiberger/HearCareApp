@@ -28,6 +28,9 @@ struct HearingTestView: View {
     @State private var showingNoiseAlert = false
     @State private var showingDebugInfo = false
     @State private var showCalibrationView = false
+    
+    @State private var shouldResetAmbientNoise = false
+        
     @ObservedObject private var soundService = AmbientSoundService.shared
     @ObservedObject private var calibrationService = CalibrationService.shared
     
@@ -110,7 +113,7 @@ struct HearingTestView: View {
         )
         .sheet(isPresented: $showCalibrationView) {
             NavigationView {
-                CalibrationView()
+                CalibrationView(shouldResetAmbientNoise: $shouldResetAmbientNoise)
             }
         }
     }

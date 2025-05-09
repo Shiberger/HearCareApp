@@ -12,6 +12,7 @@ struct CalibrationCheckView: View {
     @State private var calibrationStatus: HearingTestManager.CalibrationStatus = .calibrated
     @State private var navigateToCalibration = false
     @State private var navigateToTest = false
+    @State private var shouldResetAmbientNoise = false // Add this state variable
     
     var body: some View {
         VStack(spacing: AppTheme.Spacing.large) {
@@ -42,7 +43,7 @@ struct CalibrationCheckView: View {
             // Action buttons
             VStack(spacing: AppTheme.Spacing.medium) {
                 // Calibration button
-                NavigationLink(destination: CalibrationView(), isActive: $navigateToCalibration) {
+                NavigationLink(destination: CalibrationView(shouldResetAmbientNoise: $shouldResetAmbientNoise), isActive: $navigateToCalibration) {
                     Button(action: {
                         navigateToCalibration = true
                     }) {
@@ -91,6 +92,15 @@ struct CalibrationCheckView: View {
         .onAppear {
             // Check calibration status when view appears
             calibrationStatus = testManager.checkCalibrationStatus()
+        }
+        .onChange(of: shouldResetAmbientNoise) { newValue in
+            if newValue {
+                // Reset ambient noise level here
+                resetAmbientNoiseLevel()
+                
+                // Reset the flag after handling
+                shouldResetAmbientNoise = false
+            }
         }
     }
     
@@ -235,5 +245,16 @@ struct CalibrationCheckView: View {
         case .recommendRecalibration:
             return "Continue Without Recalibrating"
         }
+    }
+    
+    // Add function to reset ambient noise level
+    private func resetAmbientNoiseLevel() {
+        print("Resetting ambient noise level from HearingTestView...")
+        
+        // Call the method in CalibrationService
+        CalibrationService.shared.resetAudioEnvironment()
+        
+        // Update any test-related state as needed
+        // For example, refresh test settings or UI
     }
 }

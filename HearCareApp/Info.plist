@@ -17,7 +17,5 @@
 	<string>877649265265-3h5lnvjjea4424trbondrrq7qfgfrmnl.apps.googleusercontent.com</string>
 	<key>LSBundleContainsCoreMLmlmodelc</key>
 	<true/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>HearCare needs microphone access to measure ambient noise levels for accurate hearing tests.</string>
 </dict>
 </plist>

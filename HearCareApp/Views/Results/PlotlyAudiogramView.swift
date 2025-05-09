@@ -233,8 +233,8 @@ struct PlotlyAudiogramView: UIViewRepresentable {
                         b: 80,
                         t: 60,
                     },
-                    paper_bgcolor: 'rgba(0,0,0,0)',
-                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    paper_bgcolor: 'white',
+                    plot_bgcolor: 'white',
                     font: {
                         family: 'SF Pro Display, -apple-system, sans-serif'
                     }

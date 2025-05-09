@@ -196,3 +196,84 @@ class AudioService: ObservableObject {
         playNextTone()
     }
 }
+
+// Extension with debugging and reset functionality
+extension AudioService {
+    // Debug method to check audio engine status
+    func getAudioEngineStatus() -> [String: Any]? {
+        var status: [String: Any] = [:]
+        
+        // Use safely - no direct access to private properties
+        status["Type"] = "AudioService Engine"
+        status["Has Player"] = "Unknown (encapsulated)"
+        
+        // Check audio session
+        do {
+            let session = AVAudioSession.sharedInstance()
+            status["Session Category"] = "\(session.category)"
+            status["Session Mode"] = "\(session.mode)"
+            status["Is Other Audio Playing"] = "\(session.isOtherAudioPlaying)"
+            
+            if let output = session.currentRoute.outputs.first {
+                status["Output"] = "\(output.portName) (\(output.portType))"
+            }
+        } catch {
+            status["Session Error"] = error.localizedDescription
+        }
+        
+        return status
+    }
+    
+    // Method to reset the audio engine
+    func resetAudioEngine() {
+        // Stop any currently playing sounds
+        stop()
+        
+        // Deactivate audio session first
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+            
+            // Add a brief sleep to allow system to clean up resources
+            Thread.sleep(forTimeInterval: 0.2)
+            
+            // Dispose of old engine
+            audioEngine?.stop()
+            audioEngine = nil
+            tonePlayer = nil
+            mixer = nil
+            
+            // Re-setup audio session with explicit options
+            try audioSession.setCategory(.playback, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try audioSession.setActive(true)
+            
+            // Re-setup audio engine
+            setupAudioEngine()
+            
+            // Start the engine with error capture
+            if let audioEngine = audioEngine {
+                do {
+                    try audioEngine.start()
+                } catch {
+                    print("Failed to start audio engine during reset: \(error)")
+                    
+                    // Try alternative initialization approach if first attempt failed
+                    audioEngine.stop()
+                    Thread.sleep(forTimeInterval: 0.3)  // Slightly longer delay
+                    
+                    // Second attempt with fresh configuration
+                    audioEngine.reset()
+                    do {
+                        try audioEngine.start()
+                    } catch {
+                        print("Second attempt to start audio engine failed: \(error)")
+                    }
+                }
+            } else {
+                print("Failed to initialize audio engine")
+            }
+        } catch {
+            print("Error setting up audio session during reset: \(error)")
+        }
+    }
+}

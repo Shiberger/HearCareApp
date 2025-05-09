@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import AVFoundation
+import AudioToolbox
 
 struct CalibrationView: View {
     @ObservedObject private var calibrationService = CalibrationService.shared
@@ -16,6 +18,27 @@ struct CalibrationView: View {
     @State private var selectedEar: AudioService.Ear = .right
     @State private var showingHeadphoneWarning = false
     @State private var showingCompletionAlert = false
+    
+    // Direct audio generation properties
+    @State private var directAudioEngine: AVAudioEngine?
+    @State private var directPlayer: AVAudioPlayerNode?
+    
+    // AVAudioPlayer approach
+    @State private var audioPlayer: AVAudioPlayer?
+    @State private var systemSoundID: SystemSoundID = 0
+    
+    // Debug panel states
+    @State private var showDebugPanel = false
+    @State private var audioSessionInfo = "No information"
+    @State private var routeChangeHistory: [String] = []
+    @State private var audioSessionCategory = ""
+    @State private var audioSessionMode = ""
+    @State private var audioSessionProperties: [String: String] = [:]
+    @State private var playingError: String? = nil
+    @State private var debugTimer: Timer? = nil
+    
+    @Environment(\.presentationMode) private var presentationMode
+    @Binding var shouldResetAmbientNoise: Bool
     
     // Steps for calibration process
     private let steps = [
@@ -84,20 +107,108 @@ struct CalibrationView: View {
         .background(AppTheme.backgroundColor.ignoresSafeArea())
         .navigationTitle("Calibration")
         .navigationBarTitleDisplayMode(.inline)
+        .overlay(
+            Group {
+                if showDebugPanel {
+                    debugPanelView
+                        .transition(.move(edge: .bottom))
+                }
+            }
+        )
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    withAnimation {
+                        showDebugPanel.toggle()
+                        
+                        // Start or stop the debug timer
+                        if showDebugPanel {
+                            startDebugTimer()
+                            refreshAudioSessionInfo()
+                        } else {
+                            debugTimer?.invalidate()
+                            debugTimer = nil
+                        }
+                    }
+                }) {
+                    Image(systemName: "ant")
+                        .foregroundColor(showDebugPanel ? .red : .blue)
+                }
+            }
+        }
         .onAppear {
             // Start calibration process
             calibrationService.startCalibration(with: audioService)
+            
+            // Set up route change notification
+            NotificationCenter.default.addObserver(
+                forName: AVAudioSession.routeChangeNotification,
+                object: nil,
+                queue: .main
+            ) { [self] notification in
+                guard let userInfo = notification.userInfo,
+                      let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+                      let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
+                    return
+                }
+                
+                let session = AVAudioSession.sharedInstance()
+                let timestamp = Date().formatted(date: .omitted, time: .standard)
+                
+                var reasonString = "unknown"
+                switch reason {
+                case .newDeviceAvailable:
+                    reasonString = "new device available"
+                case .oldDeviceUnavailable:
+                    reasonString = "old device unavailable"
+                case .categoryChange:
+                    reasonString = "category change"
+                case .override:
+                    reasonString = "override"
+                case .wakeFromSleep:
+                    reasonString = "wake from sleep"
+                case .noSuitableRouteForCategory:
+                    reasonString = "no suitable route"
+                case .routeConfigurationChange:
+                    reasonString = "route config change"
+                case .unknown:
+                    reasonString = "unknown reason"
+                @unknown default:
+                    reasonString = "unknown default"
+                }
+                
+                // Get output description
+                let outputDesc = session.currentRoute.outputs.first?.portName ?? "none"
+                
+                routeChangeHistory.insert("[\(timestamp)] Route changed: \(reasonString) - Output: \(outputDesc)", at: 0)
+                
+                // Refresh all audio session info
+                refreshAudioSessionInfo()
+                
+                // Detect headphones - update calibration service
+                calibrationService.detectHeadphones()
+            }
+            
+            // Initial refresh
+            refreshAudioSessionInfo()
         }
         .onDisappear {
             // Stop any playing tones
-            calibrationService.stopTone()
+            stopAllAudio()
+            
+            // Remove the notification observer
+            NotificationCenter.default.removeObserver(self, name: AVAudioSession.routeChangeNotification, object: nil)
+            
+            // Stop timer
+            debugTimer?.invalidate()
+            debugTimer = nil
         }
         .alert(item: $activeAlert) { alertType in
             switch alertType {
             case .headphoneWarning:
                 return Alert(
                     title: Text("Headphones Recommended"),
-                    message: Text("For accurate calibration and testing, please use headphones. Do you want to continue without headphones?"),
+                    message: Text("เพื่อการ Calibration และการทดสอบที่แม่นยำ โปรดใช้หูฟัง คุณต้องการดำเนินการต่อโดยไม่ใช้หูฟังหรือไม่?"),
                     primaryButton: .default(Text("Continue Anyway")) {
                         currentStep += 1
                     },
@@ -106,11 +217,214 @@ struct CalibrationView: View {
             case .completionSuccess:
                 return Alert(
                     title: Text("Calibration Successful"),
-                    message: Text("Your device has been successfully calibrated for accurate hearing tests."),
-                    dismissButton: .default(Text("OK"))
+                    message: Text("อุปกรณ์ของคุณได้รับการ Calibration สำหรับการทดสอบการได้ยินที่แม่นยำเรียบร้อยแล้ว"),
+                    dismissButton: .default(Text("OK")) {
+                        // Trigger ambient noise level reset
+                        shouldResetAmbientNoise = true
+                        
+                        // Dismiss this view and return to the home screen
+                        presentationMode.wrappedValue.dismiss()
+                    }
                 )
             }
         }
+    }
+    
+    // MARK: - Debug Panel
+    
+    private var debugPanelView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Audio Debug Panel")
+                    .font(.headline)
+                    .padding(.bottom, 4)
+                
+                Group {
+                    Text("Device: \(UIDevice.current.model)")
+                    Text("iOS Version: \(UIDevice.current.systemVersion)")
+                    
+                    Divider()
+                    
+                    Text("Audio Session Category: \(audioSessionCategory)")
+                    Text("Audio Session Mode: \(audioSessionMode)")
+                    
+                    Divider()
+                    
+                    Text("Current Route:")
+                        .font(.subheadline)
+                        .bold()
+                    
+                    ForEach(audioSessionProperties.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                        Text("\(key): \(value)")
+                            .font(.caption)
+                    }
+                    
+                    if let error = playingError {
+                        Text("Last Error: \(error)")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .padding(.top, 8)
+                    }
+                    
+                    Divider()
+                    
+                    Text("Route Change History:")
+                        .font(.subheadline)
+                        .bold()
+                    
+                    ForEach(routeChangeHistory.indices.prefix(10), id: \.self) { index in
+                        Text(routeChangeHistory[index])
+                            .font(.caption)
+                            .foregroundColor(index == 0 ? .primary : .secondary)
+                    }
+                }
+                
+                Divider()
+                
+                HStack {
+                    Button(action: {
+                        refreshAudioSessionInfo()
+                    }) {
+                        Text("Refresh Info")
+                            .font(.caption)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(5)
+                    }
+                    
+                    Button(action: {
+                        testAudioWithSystemSound()
+                    }) {
+                        Text("Test System Sound")
+                            .font(.caption)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(5)
+                    }
+                    
+                    Button(action: {
+                        routeChangeHistory.removeAll()
+                    }) {
+                        Text("Clear History")
+                            .font(.caption)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.red)
+                            .foregroundColor(.white)
+                            .cornerRadius(5)
+                    }
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.9))
+                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+            )
+            .padding()
+        }
+        .frame(height: 400)
+        .edgesIgnoringSafeArea(.bottom)
+    }
+    
+    // MARK: - Debug Functions
+    
+    private func startDebugTimer() {
+        debugTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            refreshAudioSessionInfo()
+        }
+    }
+    
+    private func refreshAudioSessionInfo() {
+        let session = AVAudioSession.sharedInstance()
+        
+        // Get category and mode
+        audioSessionCategory = String(describing: session.category)
+        audioSessionMode = String(describing: session.mode)
+        
+        // Get current route info
+        var properties: [String: String] = [:]
+        
+        // Current Output Route
+        if let currentRoute = session.currentRoute.outputs.first {
+            properties["Output Port"] = currentRoute.portName
+            properties["Output Type"] = String(describing: currentRoute.portType)
+            properties["Output UID"] = currentRoute.uid
+        } else {
+            properties["Output"] = "No output route"
+        }
+        
+        // Current Input Route
+        if let currentInput = session.currentRoute.inputs.first {
+            properties["Input Port"] = currentInput.portName
+            properties["Input Type"] = String(describing: currentInput.portType)
+            properties["Input UID"] = currentInput.uid
+        } else {
+            properties["Input"] = "No input route"
+        }
+        
+        // Additional session properties
+        properties["Sample Rate"] = "\(session.sampleRate) Hz"
+        properties["Buffer Duration"] = "\(session.ioBufferDuration) sec"
+        properties["Preferred IO Buffer"] = "\(session.preferredIOBufferDuration) sec"
+        properties["OutputVolume"] = "\(session.outputVolume)"
+        properties["OutputLatency"] = "\(session.outputLatency) sec"
+        properties["InputLatency"] = "\(session.inputLatency) sec"
+        properties["Is Other Audio Playing"] = "\(session.isOtherAudioPlaying)"
+        
+        // Headphone detection specific checks
+        let isHeadsetPluggedIn = isHeadsetConnected()
+        properties["Headphones Detected"] = "\(isHeadsetPluggedIn)"
+        properties["Headphone Model"] = calibrationService.headphoneModel
+        
+        // Audio engine status - use properly exposed method
+        if let engineStatus = calibrationService.getAudioEngineStatus() {
+            for (key, value) in engineStatus {
+                properties["Engine: \(key)"] = "\(value)"
+            }
+        }
+        
+        // Direct engine status
+        if let directAudioEngine = directAudioEngine {
+            properties["Direct Engine Running"] = "\(directAudioEngine.isRunning)"
+        }
+        
+        // AVAudioPlayer status
+        if let player = audioPlayer {
+            properties["AVAudioPlayer"] = "Active"
+            properties["AVAudioPlayer Volume"] = "\(player.volume)"
+        }
+        
+        self.audioSessionProperties = properties
+    }
+    
+    // Method to check if headset is connected
+    private func isHeadsetConnected() -> Bool {
+        let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+        
+        for output in outputs {
+            if output.portType == .headphones ||
+                output.portType == .bluetoothA2DP ||
+                output.portType == .bluetoothHFP ||
+                output.portType == .bluetoothLE {
+                return true
+            }
+        }
+        return false
+    }
+    
+    // Test system sound to bypass our custom audio implementation
+    private func testAudioWithSystemSound() {
+        // Play a simple system sound to test if audio works at all
+        AudioServicesPlaySystemSound(1104) // Standard system sound
+        
+        // Add to history
+        let timestamp = Date().formatted(date: .omitted, time: .standard)
+        routeChangeHistory.insert("[\(timestamp)] System sound test triggered", at: 0)
     }
     
     // MARK: - Step-specific content
@@ -144,15 +458,15 @@ struct CalibrationView: View {
             Text("Welcome to Calibration")
                 .font(AppTheme.Typography.title3)
             
-            Text("Calibration helps ensure your hearing test results are accurate by adjusting for your specific device and headphones.")
+            Text("การ Calibration ช่วยให้มั่นใจได้ว่าผลการทดสอบการได้ยินของคุณแม่นยำโดยปรับให้เหมาะกับอุปกรณ์และหูฟังเฉพาะของคุณ")
                 .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.textSecondary)
             
             VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                calibrationInfoRow(number: 1, text: "Find a quiet environment")
-                calibrationInfoRow(number: 2, text: "Use headphones for best results")
-                calibrationInfoRow(number: 3, text: "Set your device volume to around 50%")
-                calibrationInfoRow(number: 4, text: "This process takes about 2 minutes")
+                calibrationInfoRow(number: 1, text: "อยู่ในห้องที่มีสภาพแวดล้อมที่เงียบสงบ")
+                calibrationInfoRow(number: 2, text: "ใช้หูฟังเพื่อผลลัพธ์ที่ดีที่สุด")
+                calibrationInfoRow(number: 3, text: "ตั้งระดับเสียงอุปกรณ์ของเป็นประมาณ 50%")
+                calibrationInfoRow(number: 4, text: "กระบวนการนี้ใช้เวลาประมาณ 2 นาที")
             }
             .padding(.vertical)
             
@@ -173,7 +487,7 @@ struct CalibrationView: View {
             Text("Headphone Check")
                 .font(AppTheme.Typography.title3)
             
-            Text("Please connect headphones to your device for accurate calibration and testing.")
+            Text("โปรดเชื่อมต่อหูฟังกับอุปกรณ์ของคุณเพื่อการ Calibration และการทดสอบที่แม่นยำ")
                 .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.textSecondary)
             
@@ -201,7 +515,30 @@ struct CalibrationView: View {
                     .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
             )
             
-            Text("Headphones ensure that sound is delivered directly to your ears at consistent levels. Using device speakers can result in less accurate test results.")
+            // Add manual detection refresh button
+            Button(action: {
+                calibrationService.detectHeadphones()
+                refreshAudioSessionInfo()
+                let timestamp = Date().formatted(date: .omitted, time: .standard)
+                routeChangeHistory.insert("[\(timestamp)] Manual headphone detection check", at: 0)
+            }) {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                    Text("Check Again")
+                }
+                .font(AppTheme.Typography.subheadline)
+                .foregroundColor(AppTheme.primaryColor)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 20)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
+                        .stroke(AppTheme.primaryColor, lineWidth: 1)
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical)
+            
+            Text("หูฟังช่วยให้มั่นใจได้ว่าเสียงจะส่งตรงถึงหูของคุณในระดับที่สม่ำเสมอ การใช้ลำโพงของอุปกรณ์อาจทำให้ผลการทดสอบมีความแม่นยำน้อยลง")
                 .font(AppTheme.Typography.footnote)
                 .foregroundColor(AppTheme.textSecondary)
                 .padding(.top)
@@ -213,7 +550,7 @@ struct CalibrationView: View {
             Text("Adjust Reference Level")
                 .font(AppTheme.Typography.title3)
             
-            Text("You will hear a reference tone at 1000 Hz. Adjust the slider until the tone is just barely audible - at the softest level you can hear clearly.")
+            Text("คุณจะได้ยินเสียงอ้างอิงที่ความถี่ 1,000Hz โดยปรับแถบเลื่อนจนได้ยินเสียงเบาที่สุดจนได้ยินชัดเจน")
                 .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.textSecondary)
             
@@ -237,6 +574,31 @@ struct CalibrationView: View {
                     .cornerRadius(AppTheme.Radius.medium)
                 }
                 
+                // If there's an error, show it
+                if let error = playingError {
+                    Text("Issue detected: \(error)")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                        .multilineTextAlignment(.center)
+                }
+                
+                // Add system sound test button here too
+                Button(action: testAudioWithSystemSound) {
+                    Text("Test Device Sound")
+                        .font(AppTheme.Typography.caption)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 15)
+                        .background(Color.green.opacity(0.1))
+                        .foregroundColor(.green)
+                        .cornerRadius(AppTheme.Radius.small)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.small)
+                                .stroke(Color.green, lineWidth: 1)
+                        )
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                
                 // Volume adjustment slider
                 Text("Adjust the level")
                     .font(AppTheme.Typography.subheadline)
@@ -246,7 +608,7 @@ struct CalibrationView: View {
                     Slider(value: $sliderValue, in: 0.01...1.0) { editing in
                         if !editing && isPlaying {
                             // Update the playing tone when slider is released
-                            calibrationService.playCalibrationTone(volume: sliderValue, ear: selectedEar)
+                            updateToneVolume()
                         }
                     }
                     
@@ -270,7 +632,7 @@ struct CalibrationView: View {
                 )
             }
             
-            Text("This calibration tone is set at a reference level of 40 dB. Adjusting it to be just audible helps us determine the correct volume settings for your device.")
+            Text("เสียงที่ใช้ในการ Calibration ตั้งไว้ที่ระดับอ้างอิง 40 เดซิเบล การปรับให้พอได้ยินจะช่วยให้เรากำหนดค่าระดับเสียงที่ถูกต้องสำหรับอุปกรณ์ของคุณ")
                 .font(AppTheme.Typography.footnote)
                 .foregroundColor(AppTheme.textSecondary)
                 .padding(.top)
@@ -282,7 +644,7 @@ struct CalibrationView: View {
             Text("Confirm Calibration Level")
                 .font(AppTheme.Typography.title3)
             
-            Text("Let's verify your calibration setting. We'll play the reference tone at the level you selected. You should be able to hear it clearly, but it should still be soft.")
+            Text("มาตรวจสอบการตั้งค่าการ Calibration ของคุณกัน เราจะเล่นเสียงอ้างอิงที่ระดับที่คุณเลือก คุณควรจะได้ยินมันอย่างชัดเจน แต่เสียงนั้นควรจะยังเบาอยู่")
                 .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.textSecondary)
             
@@ -306,6 +668,31 @@ struct CalibrationView: View {
                     .cornerRadius(AppTheme.Radius.medium)
                 }
                 
+                // If there's an error, show it
+                if let error = playingError {
+                    Text("Issue detected: \(error)")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                        .multilineTextAlignment(.center)
+                }
+                
+                // Add system sound test button
+                Button(action: testAudioWithSystemSound) {
+                    Text("Test Device Sound")
+                        .font(AppTheme.Typography.caption)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 15)
+                        .background(Color.green.opacity(0.1))
+                        .foregroundColor(.green)
+                        .cornerRadius(AppTheme.Radius.small)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.small)
+                                .stroke(Color.green, lineWidth: 1)
+                        )
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                
                 // Display selected level
                 HStack {
                     Text("Selected Level:")
@@ -328,19 +715,19 @@ struct CalibrationView: View {
             
             // Confirmation questions
             VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                Text("Can you answer these questions:")
+                Text("คุณสามารถตอบคำถามเหล่านี้ได้ไหม")
                     .font(AppTheme.Typography.subheadline)
                     .foregroundColor(AppTheme.primaryColor)
                 
-                Text("1. Is the tone clearly audible but still soft?")
+                Text("1. เสียงสามารถได้ยินชัดเจนแต่ยังคงนุ่มนวลอยู่หรือไม่?")
                     .font(AppTheme.Typography.body)
                     .foregroundColor(AppTheme.primaryColor)
                 
-                Text("2. Would you be able to detect this tone in a quiet room?")
+                Text("2. คุณจะสามารถรับรู้เสียงนี้ได้ในห้องที่เงียบสงบหรือไม่?")
                     .font(AppTheme.Typography.body)
                     .foregroundColor(AppTheme.primaryColor)
                 
-                Text("If you answered 'yes' to both questions, your calibration is good. If not, go back and adjust the level.")
+                Text("หากคุณตอบว่า ใช่ ทั้งสองคำถาม แสดงว่าการ Calibration ของคุณดีแล้วแต่ถ้าหากไม่เป็นเช่นนั้น ให้กลับไปและปรับระดับอีกครั้ง")
                     .font(AppTheme.Typography.footnote)
                     .foregroundColor(AppTheme.textSecondary)
                     .padding(.top, 8)
@@ -428,12 +815,12 @@ struct CalibrationView: View {
                     .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
             )
             
-            Text("Your device is now calibrated for accurate hearing tests. Remember to recalibrate if you change headphones or if it's been more than 3 months since your last calibration.")
+            Text("ตอนนี้อุปกรณ์ของคุณได้รับการ Calibration สำหรับการทดสอบการได้ยินที่แม่นยำแล้ว อย่าลืมปรับเทียบใหม่หากคุณเปลี่ยนหูฟังหรือผ่านไปแล้วมากกว่า 3 เดือนนับจากการ Calibration ครั้งสุดท้าย")
                 .font(AppTheme.Typography.body)
                 .foregroundColor(AppTheme.textSecondary)
                 .padding(.top)
             
-            Text("Calibration improves the accuracy of your hearing tests by ensuring that the sounds are played at the correct levels for your specific device and headphones.")
+            Text("การ Calibration จะช่วยเพิ่มความแม่นยำของการทดสอบการได้ยินของคุณ โดยช่วยให้แน่ใจว่าเสียงจะเล่นในระดับที่ถูกต้องสำหรับอุปกรณ์และหูฟังเฉพาะของคุณ")
                 .font(AppTheme.Typography.footnote)
                 .foregroundColor(AppTheme.textSecondary)
                 .padding(.top, AppTheme.Spacing.small)
@@ -452,7 +839,8 @@ struct CalibrationView: View {
                 Button(action: {
                     selectedEar = .left
                     if isPlaying {
-                        calibrationService.playCalibrationTone(volume: sliderValue, ear: .left)
+                        // Update the playing tone with new ear selection
+                        updateEarSelection()
                     }
                 }) {
                     VStack {
@@ -478,7 +866,8 @@ struct CalibrationView: View {
                 Button(action: {
                     selectedEar = .right
                     if isPlaying {
-                        calibrationService.playCalibrationTone(volume: sliderValue, ear: .right)
+                        // Update the playing tone with new ear selection
+                        updateEarSelection()
                     }
                 }) {
                     VStack {
@@ -613,13 +1002,273 @@ struct CalibrationView: View {
         }
     }
     
+    // MARK: - Audio Functions
+    
+    // Stop all audio from any source
+    private func stopAllAudio() {
+        // Stop any existing calibration service audio
+        calibrationService.stopTone()
+        
+        // Stop audio player
+        audioPlayer?.stop()
+        audioPlayer = nil
+        
+        // Stop direct engine
+        directAudioEngine?.stop()
+        directAudioEngine = nil
+        directPlayer = nil
+        
+        // Dispose system sound if any
+        if systemSoundID != 0 {
+            AudioServicesDisposeSystemSoundID(systemSoundID)
+            systemSoundID = 0
+        }
+        
+        isPlaying = false
+        
+        // Add to history
+        let timestamp = Date().formatted(date: .omitted, time: .standard)
+        routeChangeHistory.insert("[\(timestamp)] 🔴 Stopped all audio", at: 0)
+    }
+    
+    // Toggle tone on/off
     private func toggleTone() {
         if isPlaying {
-            calibrationService.stopTone()
-            isPlaying = false
+            stopAllAudio()
         } else {
-            calibrationService.playCalibrationTone(volume: sliderValue, ear: selectedEar)
-            isPlaying = true
+            // Try the AVAudioPlayer approach
+            playWithAVAudioPlayer()
         }
+    }
+    
+    // Update ear selection while playing
+    private func updateEarSelection() {
+        if isPlaying {
+            // For AVAudioPlayer, we can just update the pan
+            if let player = audioPlayer {
+                if selectedEar == .left {
+                    player.pan = -1.0  // Full left
+                } else if selectedEar == .right {
+                    player.pan = 1.0   // Full right
+                }
+                
+                // Log
+                let timestamp = Date().formatted(date: .omitted, time: .standard)
+                routeChangeHistory.insert("[\(timestamp)] 🔄 Updated ear selection to \(selectedEar == .left ? "Left" : "Right")", at: 0)
+            } else {
+                // For other approaches, restart
+                stopAllAudio()
+                playWithAVAudioPlayer()
+            }
+        }
+    }
+    
+    // Update tone volume if it's already playing
+    private func updateToneVolume() {
+        if isPlaying {
+            if let player = audioPlayer {
+                // For AVAudioPlayer, we can just update the volume directly
+                player.volume = sliderValue
+                
+                // Log
+                let timestamp = Date().formatted(date: .omitted, time: .standard)
+                routeChangeHistory.insert("[\(timestamp)] 🔄 Volume updated to \(sliderValue)", at: 0)
+            } else {
+                // For other approaches, restart
+                stopAllAudio()
+                playWithAVAudioPlayer()
+            }
+        }
+    }
+    
+    // Simple audio session setup focused on reliability
+    private func simplestAudioSessionSetup() throws {
+        let session = AVAudioSession.sharedInstance()
+        let timestamp = Date().formatted(date: .omitted, time: .standard)
+        
+        // Close any existing session first with very conservative delay
+        try? session.setActive(false)
+        Thread.sleep(forTimeInterval: 0.3)
+        
+        // Set the most basic category without any options
+        try session.setCategory(.playback)
+        
+        // Activate without options
+        try session.setActive(true)
+        
+        // Log
+        routeChangeHistory.insert("[\(timestamp)] ✓ Simple audio session established", at: 0)
+    }
+    
+    // Play with AVAudioPlayer approach
+    private func playWithAVAudioPlayer() {
+        // Clean up any existing audio
+        stopAllAudio()
+        
+        // Use AVAudioPlayer instead of engine for more reliability
+        do {
+            // Create a simple audio session that's less likely to fail
+            try simplestAudioSessionSetup()
+            
+            // Generate a sine wave file
+            let url = generateToneFile()
+            
+            // Create and configure the player
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.numberOfLoops = -1  // Loop continuously
+            player.volume = sliderValue
+            
+            // Route to the appropriate channel
+            if selectedEar == .left {
+                player.pan = -1.0  // Full left
+            } else if selectedEar == .right {
+                player.pan = 1.0   // Full right
+            } else {
+                player.pan = 0.0   // Center (should never happen but just in case)
+            }
+            
+            // Start playing
+            player.prepareToPlay()
+            player.play()
+            
+            // Store the player and update state
+            self.audioPlayer = player
+            self.isPlaying = true
+            self.playingError = nil
+            
+            // Log success
+            let timestamp = Date().formatted(date: .omitted, time: .standard)
+            routeChangeHistory.insert("[\(timestamp)] 🟢 AVAudioPlayer started (1000Hz)", at: 0)
+            
+            // Refresh audio session info
+            refreshAudioSessionInfo()
+            
+        } catch {
+            // Handle failure
+            self.playingError = "AVAudioPlayer failed: \(error.localizedDescription)"
+            
+            // Log failure
+            let timestamp = Date().formatted(date: .omitted, time: .standard)
+            routeChangeHistory.insert("[\(timestamp)] ❌ AVAudioPlayer failed: \(error.localizedDescription)", at: 0)
+            
+            // Try system sound as fallback
+            playWithSystemSound()
+        }
+    }
+    
+    // Play with System Sound - more reliable but fewer features
+    private func playWithSystemSound() {
+        do {
+            // Clean up first
+            stopAllAudio()
+            
+            // Generate tone file suitable for system sound
+            let url = generateToneFile()
+            
+            // Create system sound
+            var soundID: SystemSoundID = 0
+            let status = AudioServicesCreateSystemSoundID(url as CFURL, &soundID)
+            
+            if status != kAudioServicesNoError {
+                playWithAudioServicesPlaySystemSound() // Resort to built-in sound
+                return
+            }
+            
+            // Store for later cleanup
+            self.systemSoundID = soundID
+            
+            // Play the sound
+            AudioServicesPlaySystemSound(soundID)
+            
+            // Update state
+            self.isPlaying = true
+            self.playingError = "Using system sound (limited control)"
+            
+            // Log
+            let timestamp = Date().formatted(date: .omitted, time: .standard)
+            routeChangeHistory.insert("[\(timestamp)] 🟡 System sound started", at: 0)
+            
+            // Refresh audio session info
+            refreshAudioSessionInfo()
+            
+        } catch {
+            // If this fails too, use built-in sounds
+            playWithAudioServicesPlaySystemSound()
+        }
+    }
+    
+    // Fallback to built-in system sounds
+    private func playWithAudioServicesPlaySystemSound() {
+        // Clean up first
+        stopAllAudio()
+        
+        // Use a standard system sound
+        AudioServicesPlaySystemSound(1013) // Standard alert sound
+        
+        // Show error that we're using a fallback
+        self.playingError = "Using standard system sound as fallback"
+        self.isPlaying = true
+        
+        // Log
+        let timestamp = Date().formatted(date: .omitted, time: .standard)
+        routeChangeHistory.insert("[\(timestamp)] ⚠️ Using system sound fallback", at: 0)
+        
+        // Refresh audio session info
+        refreshAudioSessionInfo()
+    }
+    
+    // Helper to create a wave file
+    private func generateToneFile() -> URL {
+        // Create a 1-second sine wave at 1000Hz
+        let sampleRate = 44100
+        let duration = 1.0
+        let frequency = 1000.0
+        let amplitude = Double(sliderValue) * 0.8  // Slightly reduce to prevent clipping
+        
+        // Create audio format for WAV file
+        let format = AVAudioFormat(standardFormatWithSampleRate: Double(sampleRate), channels: 2)!
+        
+        // Create buffer
+        let frameCount = AVAudioFrameCount(duration * Double(sampleRate))
+        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
+        buffer.frameLength = frameCount
+        
+        // Fill with sine wave
+        let channels = buffer.floatChannelData!
+        for frame in 0..<Int(frameCount) {
+            let value = Float(sin(2.0 * .pi * frequency * Double(frame) / Double(sampleRate)) * amplitude)
+            
+            // Apply to appropriate channels
+            if selectedEar == .left {
+                channels[0][frame] = value  // Left channel
+                channels[1][frame] = 0.0    // Right channel silent
+            } else if selectedEar == .right {
+                channels[0][frame] = 0.0    // Left channel silent
+                channels[1][frame] = value  // Right channel
+            } else {
+                channels[0][frame] = value  // Left channel
+                channels[1][frame] = value  // Right channel
+            }
+        }
+        
+        // Create temporary file
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileURL = tempDir.appendingPathComponent("tone-\(UUID().uuidString).wav")
+        
+        // Write the buffer to file
+        let audioFile = try! AVAudioFile(forWriting: fileURL, settings: format.settings)
+        try! audioFile.write(from: buffer)
+        
+        return fileURL
+    }
+}
+
+// MARK: - CalibrationService Extension
+// Renamed method to avoid conflict with the existing method in CalibrationService
+extension CalibrationService {
+    // Use this new method name to avoid conflict
+    func playDiagnosticCalibrationTone(volume: Float, ear: AudioService.Ear) -> String? {
+        // Just call the original method - this is a wrapper
+        return playCalibrationTone(volume: volume, ear: ear)
     }
 }

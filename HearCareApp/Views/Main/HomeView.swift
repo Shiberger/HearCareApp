@@ -20,7 +20,7 @@ struct HomeView: View {
     private let pastelPurple = Color(red: 0.9, green: 0.8, blue: 1.0)       // Bright lavender
     private let pastelRed = Color(red: 1.0, green: 0.8, blue: 0.8)          // Bright coral
     private let pastelOrange = Color(red: 1.0, green: 0.85, blue: 0.7)      // Bright peach
-       
+    
     // Update the gradientBackground definition
     private var gradientBackground: LinearGradient {
         LinearGradient(
@@ -32,7 +32,7 @@ struct HomeView: View {
             endPoint: .bottomTrailing
         )
     }
-        
+    
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -157,7 +157,13 @@ struct HomeView: View {
                             // แถวบน - 2 รายการ
                             HStack(spacing: 15) {
                                 // ปุ่มทดสอบการได้ยิน
-                                NavigationLink(destination: HearingTestView()) {
+                                NavigationLink(destination:
+                                                HearingTestView()
+                                    .onAppear {
+                                        // Reset on appear when coming from this path
+                                        CalibrationService.shared.resetAudioEnvironment()
+                                    }
+                                ) {
                                     cardActionButton(
                                         icon: "ear.fill",
                                         title: "ทดสอบการได้ยิน",
@@ -213,7 +219,7 @@ struct HomeView: View {
                             }
                         }
                     }
-
+                    
                     // Hearing summary with pastel colors
                     enhancedInfoCard(
                         title: "Hearing Summary",
@@ -261,7 +267,7 @@ struct HomeView: View {
                                     
                                     RoundedRectangle(cornerRadius: AppTheme.Radius.medium)
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                        
+                                    
                                     // Mini audiogram visualization
                                     simpleAudiogramPreview
                                         .padding()
@@ -403,7 +409,7 @@ struct HomeView: View {
                 .padding(.vertical, AppTheme.Spacing.large)
             }
             .background(gradientBackground.ignoresSafeArea())
-//            .navigationTitle("HearCare")
+            //            .navigationTitle("HearCare")
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 fetchLastTest()
@@ -782,7 +788,7 @@ struct HomeView: View {
                 .padding(.vertical, AppTheme.Spacing.large)
             }
             .background(gradientBackground.ignoresSafeArea())
-//            .navigationTitle("Profile")
+            //            .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
         }
     }
