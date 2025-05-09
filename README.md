@@ -10,6 +10,8 @@
 
 HearCare is a mobile application designed to provide accessible hearing tests and monitoring for users in their everyday environment. With its intuitive interface and scientifically-based testing approach, HearCare helps users monitor their hearing health over time and detect potential hearing issues early.
 
+Document User Manual : <iframe src="https://docs.google.com/document/d/e/2PACX-1vSPR5mE0FhH8DbgdD28ZVk6tcX6mgRMGyq92YCdFcs_tUBT4qcNBGlHmcPkQi-j_hLPS9xCeTCgY_RT/pub?embedded=true"></iframe>
+
 ### 🌟 Key Features
 
 - **Pure-tone Audiometry Tests**: Comprehensive hearing tests across multiple frequencies
@@ -66,6 +68,58 @@ firestore/
 │   │   └── hearingConditions[]
 ```
 
+## 🏗️ Project Structure
+
+```
+HearCareApp/
+├── App/
+│   └── HearCareApp.swift                  # App entry point
+├── Components/
+│   ├── CustomComponents.swift             # Reusable UI components
+│   ├── ThemeManager.swift                 # App theming and styling
+│   └── AppTheme+Gradients.swift           # Gradient definitions
+├── Models/
+│   ├── FrequencyDataPoint.swift           # Data models for test results
+│   └── TestResult.swift                   # Structure for test result data
+├── Services/
+│   ├── Audio/
+│   │   ├── AudioService.swift             # Core audio functionality
+│   │   ├── HearingTestManager.swift       # Test orchestration
+│   │   └── AmbientSoundService.swift      # Background noise monitoring
+│   ├── Calibration/
+│   │   └── CalibrationService.swift       # Device calibration management
+│   ├── CoreML/
+│   │   ├── HearingModelService.swift      # AI analysis of hearing data
+│   │   └── ResultsProcessor.swift         # Processing of test responses
+│   └── Firebase/
+│       ├── AuthenticationService.swift    # User authentication management
+│       └── FirestoreService.swift         # Data persistence
+├── ViewModels/
+│   ├── HistoryViewModel.swift             # History screen logic
+│   ├── HearingHealthProfileViewModel.swift # Health profile logic
+│   └── ResultsViewModel.swift             # Test results logic
+├── Views/
+│   ├── Authentication/
+│   │   └── LoginView.swift                # Login screen
+│   ├── Main/
+│   │   ├── HomeView.swift                 # Dashboard view
+│   │   ├── HistoryView.swift              # History view
+│   │   ├── HearingHealthProfileView.swift # Health profile view
+│   │   └── PersonalInformationView.swift  # User profile view
+│   ├── Test/
+│   │   ├── HearingTestView.swift          # Main test interface
+│   │   ├── MicrophonePermissionView.swift # Permission handling
+│   │   ├── CalibrationView.swift          # Device calibration
+│   │   └── NoiseAlertView.swift           # Noise warning
+│   └── Results/
+│       ├── DetailedResultsView.swift      # Test results details
+│       ├── AudiogramChartView.swift       # Audiogram visualization
+│       └── PlotlyAudiogramView.swift      # Enhanced audiogram charts
+└── Resources/
+    ├── Assets.xcassets/                   # Images and colors
+    └── Info.plist                         # App configuration
+```
+
 ## 📊 How It Works
 
 HearCare uses a modified Hughson-Westlake procedure to determine hearing thresholds:
@@ -99,7 +153,12 @@ git clone https://github.com/yourusername/hearcare-app.git
 cd hearcare-app
 ```
 
-3. Install dependencies via Swift Packages
+3. Swift Package Manager
+   - Open the project in Xcode
+   - Go to File > Swift Packages > Add Package Dependency
+   - Add the following packages:
+     - https://github.com/firebase/firebase-ios-sdk.git
+     - https://github.com/google/GoogleSignIn-iOS.git
 
 4. Set up Firebase
    - Go to the [Firebase Console](https://console.firebase.google.com/)
@@ -118,26 +177,32 @@ cd hearcare-app
      - Configure your OAuth consent screen in Google Cloud Console
      - Add your reversed client ID to the URL types in Xcode project's Info.plist
 
-5. Configure Firebase Security Rules
-   - Go to Firestore Database > Rules and set up appropriate security rules:
+## 🔧 Configuration
+Firebase Setup
+- Create a new Firebase project at Firebase Console
+- Add an iOS app to your Firebase project
+- Download the GoogleService-Info.plist file and add it to your Xcode project
+- Enable Authentication with Google Sign-In method
+- Create a Firestore database with appropriate security rules
+
+Google Sign-In Setup
+- Configure your Firebase project for Google Sign-In
+- Update your Info.plist with the required URL schemes:
+  
 ```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
-      
-      match /testResults/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      match /userData/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-  }
-}
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleTypeRole</key>
+    <string>Editor</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>com.googleusercontent.apps.YOUR-CLIENT-ID</string>
+    </array>
+  </dict>
+</array>
+<key>GIDClientID</key>
+<string>YOUR-CLIENT-ID.apps.googleusercontent.com</string>
 ```
 
 6. Build and run the app on your preferred simulator or device
@@ -163,9 +228,18 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## 🙏 Acknowledgements
+
+- AVFoundation Documentation
+- Firebase Documentation
+- Google Sign-In for iOS
+- SwiftUI Documentation
+- Core ML Documentation
+
 ## 📜 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the Srinakharinwirot University / College of Social Communication / Major Computer for Communication
+Create by Team HearCare (Hannarong, Pawaranh, Kornchanok)
 
 ## ⚠️ Disclaimer
 
