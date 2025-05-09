@@ -10,7 +10,7 @@
 
 HearCare is a mobile application designed to provide accessible hearing tests and monitoring for users in their everyday environment. With its intuitive interface and scientifically-based testing approach, HearCare helps users monitor their hearing health over time and detect potential hearing issues early.
 
-Document User Manual : <iframe src="https://docs.google.com/document/d/e/2PACX-1vSPR5mE0FhH8DbgdD28ZVk6tcX6mgRMGyq92YCdFcs_tUBT4qcNBGlHmcPkQi-j_hLPS9xCeTCgY_RT/pub?embedded=true"></iframe>
+Document User Manual ([Here](https://docs.google.com/document/d/e/2PACX-1vSPR5mE0FhH8DbgdD28ZVk6tcX6mgRMGyq92YCdFcs_tUBT4qcNBGlHmcPkQi-j_hLPS9xCeTCgY_RT/pub)).
 
 ### 🌟 Key Features
 
