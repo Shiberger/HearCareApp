@@ -17,6 +17,9 @@ private let pastelPurple = Color(red: 0.9, green: 0.8, blue: 1.0)       // Brigh
 private let pastelRed = Color(red: 1.0, green: 0.8, blue: 0.8)          // Bright coral
 private let pastelOrange = Color(red: 1.0, green: 0.85, blue: 0.7)      // Bright peach
 
+private let darkerPastelRed = Color(red: 0.7, green: 0.4, blue: 0.4)    // Darker coral
+private let darkerPastelBlue = Color(red: 0.35, green: 0.45, blue: 0.6) // Darker sky blue
+
 struct HearingTestView: View {
     @StateObject private var testManager = HearingTestManager()
     @State private var testStage: TestStage = .microphonePermission
@@ -269,7 +272,7 @@ struct HearingTestView: View {
                     .frame(height: 50)
                     .background(
                         RoundedRectangle(cornerRadius: 15)
-                            .fill(pastelBlue)
+                            .fill(darkerPastelBlue)
                             .shadow(color: pastelBlue.opacity(0.5), radius: 5, x: 0, y: 3)
                     )
                 }
@@ -621,7 +624,7 @@ struct HearingTestView: View {
                                 .degrees(180),
                                 axis: (x: 0, y: 1, z: 0)  // Vertical flip
                             )
-                            .foregroundColor(Color.gray.opacity(0.5))
+                            .foregroundColor(darkerPastelBlue)
                     }
                     
                     Text("หูซ้าย")
@@ -639,7 +642,7 @@ struct HearingTestView: View {
                         
                         Image(systemName: "ear.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(pastelRed)
+                            .foregroundColor(darkerPastelRed)
                     }
                     .overlay(
                         Circle()
@@ -754,7 +757,7 @@ struct HearingTestView: View {
                 
                 RoundedRectangle(cornerRadius: 10)
                     .fill(pastelBlue)
-                    .frame(width: UIScreen.main.bounds.width * CGFloat(testManager.progress) - 40, height: 8)
+                    .frame(width: max(0, UIScreen.main.bounds.width * CGFloat(testManager.progress) - 40), height: 8)
                     .animation(.easeInOut, value: testManager.progress)
             }
             .padding(.horizontal)
@@ -769,7 +772,7 @@ struct HearingTestView: View {
                 
                 // ตัวบ่งชี้หูปัจจุบัน
                 let earText = testManager.currentEar == .right ? "หูขวา" : "หูซ้าย"
-                let earColor = testManager.currentEar == .right ? pastelRed : pastelBlue
+                let earColor = testManager.currentEar == .right ? darkerPastelRed : darkerPastelBlue
                 
                 HStack {
                     Image(systemName: "ear")
@@ -867,7 +870,7 @@ struct HearingTestView: View {
             }
             
             // ไอคอนหู
-            let earColor = testManager.currentEar == .right ? pastelRed : pastelBlue
+            let earColor = testManager.currentEar == .right ? darkerPastelRed : darkerPastelBlue
             let earRotation = testManager.currentEar == .right ?
                 Angle(degrees: 0) : Angle(degrees: 0)
             
